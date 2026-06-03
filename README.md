@@ -22,6 +22,32 @@
 
 ---
 
+## 🗄️ 数据库设计
+
+| 表名 | 说明 |
+|------|------|
+| `account` | 用户账户表（注册/登录） |
+| `doctor` | 医生信息表 |
+| `doctor_level` | 医师职级表 |
+| `treat_type` | 诊治类别表 |
+| `drug` | 药品信息表 |
+| `drugcompany` | 药企信息表 |
+| `drug_sale` | 药品-销售关联表 |
+| `sale` | 销售网点表 |
+| `medical_policy` | 医保政策表 |
+| `company_policy` | 公司政策表 |
+| `material` | 物资信息表 |
+| `patient` | 患者信息表 |
+| `china` | 全国省市表（自关联） |
+| `city` | 城市编号表 |
+| `sysregion` | 区域编码表 |
+| `permission` | 权限菜单表 |
+| `role_permission` | 角色-权限关联表 |
+
+> 完整 DDL 见 [`sql/init.sql`](sql/init.sql)
+
+---
+
 ## 🚀 技术栈
 
 | 层级 | 技术 |
@@ -70,6 +96,8 @@ myMedicalSystem/
 │   ├── application.example.yml  # 配置示例
 │   ├── Mapper/              # XML 映射文件
 │   └── static/              # 前端页面（17个HTML） + 静态资源
+├── sql/
+│   └── init.sql             # 数据库建表脚本（DDL）
 └── src/test/                # 单元测试
 ```
 
@@ -83,11 +111,17 @@ myMedicalSystem/
 - MySQL 8.0+
 - Maven 3.6+
 
-### 1. 创建数据库
+### 1. 创建数据库并导入表结构
 
-```sql
-CREATE DATABASE demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```bash
+# 先创建数据库
+mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+# 导入建表脚本
+mysql -uroot -p demo < sql/init.sql
 ```
+
+> 也可以直接使用 IDEA 或 DataGrip 等工具执行 `sql/init.sql`
 
 ### 2. 配置数据库连接
 
@@ -133,7 +167,7 @@ mvn spring-boot:run
 
 > 🔗 [web-frontend-practice](https://github.com/15wind/web-frontend-practice)
 
-包含跟随黑马程序员课程学习的全部前端练习代码：
+包含前端学习过程中的全部练习代码：
 
 - **HTML/CSS**：14 个页面（Flex 布局、表单、表格、导航栏等）
 - **JavaScript/Vue**：16 个页面（DOM 操作、事件监听、Vue 指令、Axios 异步交互）
