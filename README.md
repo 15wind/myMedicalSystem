@@ -167,7 +167,7 @@ mvn spring-boot:run
 
 > 🔗 [web-frontend-practice](https://github.com/15wind/web-frontend-practice)
 
-包含前端学习过程中的全部练习代码：
+包含前端练习代码：
 
 - **HTML/CSS**：14 个页面（Flex 布局、表单、表格、导航栏等）
 - **JavaScript/Vue**：16 个页面（DOM 操作、事件监听、Vue 指令、Axios 异步交互）
