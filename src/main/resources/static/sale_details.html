@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>销售详情 - 智慧医疗系统</title>
+  <!-- 引入Vue和Element UI -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <style>
+    /* 全局样式 */
+    body {
+      font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8fafc;
+      color: #334155;
+      line-height: 1.6;
+    }
+
+    /* 主容器 */
+    .container {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+    }
+
+    .container:hover {
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    /* 头部区域 */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 600;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+    }
+
+    .back-btn {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .back-btn:hover {
+      background-color: #2563eb;
+    }
+
+    /* 加载中样式 */
+    .loading {
+      text-align: center;
+      font-size: 18px;
+      color: #64748b;
+    }
+
+    /* 错误信息样式 */
+    .error {
+      text-align: center;
+      font-size: 18px;
+      color: #ef4444;
+    }
+
+    /* 信息卡片样式 */
+    .info-card {
+      padding: 20px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .info-label {
+      width: 120px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .info-value {
+      flex-grow: 1;
+      color: #334155;
+    }
+  </style>
+</head>
+
+<body>
+<div id="app">
+  <div class="container">
+    <div class="header">
+      <div class="title">
+        <i class="fa fa-info-circle"></i>销售详情
+      </div>
+      <button class="back-btn" @click="goBack">
+        <i class="fa fa-arrow-left"></i>返回
+      </button>
+    </div>
+
+    <div v-if="loading" class="loading">
+      <i class="fa fa-circle-o-notch"></i> 加载中...
+    </div>
+
+    <div v-else-if="error" class="error">
+      <i class="fa fa-exclamation-circle"></i>{{ error }}
+    </div>
+
+    <div v-else class="info-card">
+      <div class="info-item">
+        <div class="info-label">销售ID</div>
+        <div class="info-value">{{ saleData.saleId || '-' }}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">销售名称</div>
+        <div class="info-value">{{ saleData.saleName || '-' }}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">销售电话</div>
+        <div class="info-value">{{ saleData.salePhone || '-' }}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">创建时间</div>
+        <div class="info-value">{{ formatDate(saleData.createtime) || '-' }}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">更新时间</div>
+        <div class="info-value">{{ formatDate(saleData.updatetime) || '-' }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  new Vue({
+    el: '#app',
+    data() {
+      return {
+        saleData: {},
+        loading: true,
+        error: null,
+        saleId: null // 新增 saleId 变量
+      };
+    },
+    mounted() {
+      this.saleId = this.getQueryParam('saleId');
+      if (this.saleId) {
+        this.fetchSaleData();
+      } else {
+        this.error = '未指定销售ID';
+        this.loading = false;
+      }
+    },
+    methods: {
+      // 获取URL参数
+      getQueryParam(name) {
+        const url = window.location.href;
+        name = name.replace(/[\[\]]/g, '\\$&');
+        const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, ' '));
+      },
+
+      // 获取销售数据 - 修改后的方法
+      fetchSaleData() {
+        axios.get(`http://localhost:80/sales/listWithSaleId?saleId=${this.saleId}`) // 修改接口参数
+                .then(response => {
+                  if (response.status === 200 && response.data && response.data.length > 0) {
+                    this.saleData = response.data[0];
+                    if (this.saleData.createtime) {
+                      this.saleData.createtime = new Date(this.saleData.createtime).toLocaleString();
+                    }
+                    if (this.saleData.updatetime) {
+                      this.saleData.updatetime = new Date(this.saleData.updatetime).toLocaleString();
+                    }
+                  } else {
+                    this.error = '未找到该销售的信息';
+                  }
+                  this.loading = false;
+                })
+                .catch(error => {
+                  console.error('获取销售数据失败:', error);
+                  if (error.response && error.response.status === 404) {
+                    this.error = '未找到该销售的信息';
+                  } else {
+                    this.error = '获取销售数据失败，请稍后重试';
+                  }
+                  this.loading = false;
+                });
+      },
+      // 格式化日期
+      formatDate(timestamp) {
+        if (!timestamp) return '-';
+        return new Date(timestamp).toLocaleString();
+      },
+      // 返回上一页
+      goBack() {
+        window.history.back();
+      }
+    }
+  });
+</script>
+</body>
+
+</html>

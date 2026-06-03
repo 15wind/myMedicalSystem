@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>慧医数字医疗系统 - 药品信息管理</title>
+    <!-- 引入Vue和Element UI -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1a6fbf;
+            --secondary-color: #2a9d8f;
+            --accent-color: #e76f51;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .el-header {
+            background: linear-gradient(135deg, var(--primary-color), #0d5494);
+            color: white;
+            line-height: 60px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        .header-title {
+            flex-grow: 1;
+            text-align: center;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        .login-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .login-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .user-dropdown {
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .user-dropdown:hover {
+            color: #e6e6e6;
+        }
+        .el-footer {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            line-height: 60px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .el-aside {
+            width: 200px;
+            background: linear-gradient(to bottom, #2c3e50, #34495e);
+            color: white;
+            padding: 10px 0;
+            transition: all 0.3s ease;
+        }
+        .el-container {
+            height: 86vh;
+        }
+        .nav-button {
+            width: 90%;
+            margin: 8px auto;
+            text-align: left;
+            border: none;
+            border-radius: 6px;
+            display: block;
+            transition: all 0.3s;
+            color: #ecf0f1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+        .nav-button i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+        .nav-button.type-primary {
+            background: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(26, 111, 191, 0.4);
+        }
+        .el-main {
+            padding: 20px;
+            overflow: auto;
+            background-color: #f5f7fa;
+        }
+        .welcome-section {
+            background: linear-gradient(to right, #1a6fbf, #2a9d8f);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .welcome-section::before {
+            content: "";
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+        .welcome-section h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .welcome-section p {
+            font-size: 16px;
+            max-width: 700px;
+            opacity: 0.9;
+        }
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .action-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s;
+            cursor: pointer;
+            border-top: 3px solid var(--secondary-color);
+        }
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+        .action-card i {
+            font-size: 32px;
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            display: block;
+        }
+        .policy-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+        }
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+        }
+        .section-title i {
+            margin-right: 10px;
+        }
+        .policy-list {
+            list-style: none;
+        }
+        .policy-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .policy-item:last-child {
+            border-bottom: none;
+        }
+        .policy-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+        .policy-title .new-badge {
+            background: var(--accent-color);
+            color: white;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+        .policy-date {
+            color: #95a5a6;
+            font-size: 13px;
+        }
+        .policy-content {
+            margin-top: 8px;
+            color: #7f8c8d;
+            line-height: 1.6;
+        }
+        .image-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .image-container img {
+            width: 48%;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+        }
+        @media (max-width: 768px) {
+            .el-aside {
+                width: 60px;
+            }
+            .nav-button span {
+                display: none;
+            }
+            .nav-button i {
+                margin-right: 0;
+                font-size: 20px;
+            }
+            .welcome-section h1 {
+                font-size: 24px;
+            }
+            .el-header {
+                padding: 0 10px;
+                font-size: 16px;
+            }
+            .user-name {
+                font-size: 14px;
+            }
+        }
+        .operation-buttons {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+        }
+        .operation-buttons button {
+            margin: 0 5px;
+        }
+        /* 优化卡片布局 */
+        .drug-card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        /* 折叠面板样式优化 */
+        .drug-collapse {
+            margin-top: 10px;
+        }
+        .el-collapse-item__header {
+            padding: 8px 0;
+            font-weight: normal;
+            color: var(--primary-color);
+        }
+        .el-collapse-item__content {
+            padding: 8px 0 12px;
+            color: #666;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <el-container>
+        <el-header>
+            <div class="header-title">慧医数字医疗系统 - {{ currentModuleTitle }}</div>
+            <div class="user-info">
+                <button v-if="!currentUser" class="login-btn" @click="navigateToLogin">
+                    <i class="el-icon-user"></i> 登录
+                </button>
+                <el-dropdown v-else @command="handleUserCommand">
+                    <span class="user-dropdown">
+                        <i class="el-icon-user"></i>
+                        <span class="user-name">{{ currentUser.realname || currentUser.username }}</span>
+                        <i class="el-icon-arrow-down el-icon--right"></i>
+                    </span>
+                    <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item command="info">个人信息</el-dropdown-item>
+                        <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                    </el-dropdown-menu>
+                </el-dropdown>
+            </div>
+        </el-header>
+        <el-container>
+            <el-aside>
+                <div class="nav-buttons">
+                    <!-- 首页 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('home')">
+                        <i class="el-icon-message"></i> 首页
+                    </el-button>
+
+                    <!-- 医生信息管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('doctor')">
+                        <i class="el-icon-user"></i> 医生信息管理
+                    </el-button>
+
+                    <!-- 药品信息管理 -->
+                    <el-button class="nav-button type-primary" type="primary" @click="navigateTo('medicine')">
+                        <i class="el-icon-sell"></i> 药品信息管理
+                    </el-button>
+
+                    <!-- 医药公司管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('drugcompany')">
+                        <i class="el-icon-s-claim"></i> 医药公司管理
+                    </el-button>
+
+                    <!-- 城市信息管理功能 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('china')">
+                        <i class="el-icon-location"></i> 城市信息管理
+                    </el-button>
+
+                    <!-- 医药政策管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('medical_policy')">
+                        <i class="el-icon-document"></i> 医药政策管理
+                    </el-button>
+
+                    <!-- 公司政策管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('companypolicy')">
+                        <i class="el-icon-location"></i> 公司政策管理
+                    </el-button>
+
+                    <!-- 必备材料管理功能 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('material')">
+                        <i class="el-icon-folder"></i> 必备材料管理
+                    </el-button>
+                    <el-button class="nav-button" type="info" @click="navigateTo('sale_place')">
+                        <i class="el-icon-location"></i> 销售地点管理
+                    </el-button>
+                </div>
+            </el-aside>
+            <el-container>
+                <el-main>
+                    <!-- 药品信息管理区域 -->
+                    <div class="section-title">
+                        <i class="el-icon-medkit"></i> 药品信息管理
+                    </div>
+                    <!-- 操作栏 -->
+                    <div class="search-bar">
+                        <el-input
+                                v-model="searchKeyword"
+                                placeholder="请输入药品名称搜索"
+                                @keyup.enter="searchDrugs"
+                                style="width: 300px;"
+                        ></el-input>
+                        <el-button @click="searchDrugs">搜索</el-button>
+                        <el-button @click="showAddDialog" type="primary">添加药品</el-button>
+                        <el-button @click="refreshPage" type="primary" style="background-color: #1a6fbf;">更新按钮</el-button>
+                    </div>
+                    <!-- 药品列表 -->
+                    <div class="drug-card-container">
+                        <el-card v-for="(drug, index) in drugList" :key="drug.drugId" class="drug-card">
+                            <img :src="getDrugImageUrl(drug.drugImg)" class="image" style="width: 100%; height: 180px; object-fit: cover; border-radius: 8px 8px 0 0;">
+                            <div style="padding: 16px;">
+                                <div class="drug-name">{{drug.drugName}}</div>
+                                <div class="drug-owner">负责人：{{drug.publisher}}</div>
+                                <!-- 折叠面板：药品信息和作用 -->
+                                <div class="drug-collapse">
+                                    <el-collapse accordion>
+                                        <el-collapse-item title="药品信息">
+                                            <div class="el-collapse-item__content">{{drug.drugInfo || '暂无信息'}}</div>
+                                        </el-collapse-item>
+                                        <el-collapse-item title="药品作用">
+                                            <div class="el-collapse-item__content">{{drug.drugEffect || '暂无信息'}}</div>
+                                        </el-collapse-item>
+                                    </el-collapse>
+                                </div>
+                                <div class="operation-buttons">
+                                    <el-button size="small" @click="editDrug(drug)">修改</el-button>
+                                    <el-button size="small" type="danger" @click="deleteDrug(drug.drugId)">删除</el-button>
+                                </div>
+                            </div>
+                        </el-card>
+                    </div>
+                </el-main>
+            </el-container>
+        </el-container>
+        <el-footer>
+            慧医数字医疗应用系统 - 版权所有 © 2025
+        </el-footer>
+    </el-container>
+    <!-- 添加/修改药品对话框（增加药品信息和作用字段） -->
+    <el-dialog :visible.sync="addDialogVisible" title="添加药品">
+        <el-form :model="form" ref="formRef" label-width="80px">
+            <el-form-item label="药品名称">
+                <el-input v-model="form.drugName" placeholder="请输入药品名称"></el-input>
+            </el-form-item>
+            <el-form-item label="负责人">
+                <el-input v-model="form.publisher" placeholder="请输入负责人"></el-input>
+            </el-form-item>
+            <el-form-item label="药品信息">
+                <el-input v-model="form.drugInfo" type="textarea" :rows="3" placeholder="请输入药品信息"></el-input>
+            </el-form-item>
+            <el-form-item label="药品作用">
+                <el-input v-model="form.drugEffect" type="textarea" :rows="3" placeholder="请输入药品作用"></el-input>
+            </el-form-item>
+            <el-form-item label="药品图片">
+                <el-upload
+                        class="upload-demo"
+                        action="/drugs/uploadImage"
+                        :on-success="handleFormUploadSuccess"
+                        :before-upload="beforeUpload"
+                        :show-file-list="false"
+                >
+                    <el-button slot="trigger" size="small" type="primary">选取图片</el-button>
+                </el-upload>
+                <div v-if="form.drugImg" class="mt-2">
+                    <img :src="getDrugImageUrl(form.drugImg)" style="width: 100px; height: 100px; object-fit: cover;">
+                </div>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="addDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="submitForm">确定</el-button>
+        </div>
+    </el-dialog>
+</div>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                currentModule: 'medicine',
+                currentModuleTitle: '药品信息管理',
+                currentUser: null,
+                moduleRoutes: {
+                    home: '/home',
+                    doctor: '/doctor',
+                    drugcompany: '/drugcompany',
+                    medical_policy: '/medical_policy',
+                    china: '/china',
+                    medicine: '/medicine',
+                    material: '/material',
+                    companypolicy: '/companypolicy',
+                    sale_place: '/sale_place',
+                },
+                drugList: [],
+                searchKeyword: '',
+                addDialogVisible: false,
+                selectedDrug: null,
+                form: {
+                    drugId: null,
+                    drugName: '',
+                    publisher: '',
+                    drugInfo: '',
+                    drugEffect: '',
+                    drugImg: ''
+                },
+                formRef: null
+            };
+        },
+        mounted() {
+            this.checkLoginStatus();
+            this.getDrugs();
+        },
+        methods: {
+            // 页面导航
+            navigateTo(module) {
+                this.currentModule = module;
+                this.currentModuleTitle = this.getModuleTitle(module);
+                this.$message.info(`正在跳转至 ${this.currentModuleTitle}...`);
+                switch (module) {
+                    case 'home': window.location.href = 'index1.html'; break;
+                    case 'doctor': window.location.href = 'doctor1.html'; break;
+                    case 'drugcompany': window.location.href = 'drugcompany1.html'; break;
+                    case 'medical_policy': window.location.href = 'medical_policy1.html'; break;
+                    case 'china': window.location.href = 'china1.html'; break;
+                    case 'medicine': window.location.href = 'drug1.html'; break; // 沿用原药品页面
+                    case 'material': window.location.href = 'material1.html'; break;
+                    case 'companypolicy': window.location.href = 'companypolicy1.html'; break;
+                    case 'sale_place': window.location.href = 'sale_place1.html'; break;
+                }
+            },
+            getModuleTitle(module) {
+                const titleMap = {
+                    home: '首页',
+                    doctor: '医生信息管理',
+                    drugcompany: '医药公司管理',
+                    medical_policy: '医药政策管理',
+                    china: '城市信息管理',
+                    medicine: '药品信息管理',
+                    material: '必备材料管理',
+                    companypolicy: '公司政策管理,',
+                    sale_place: '销售地点管理'
+                };
+                return titleMap[module] || '未知模块';
+            },
+            // 登录相关
+            checkLoginStatus() {
+                const user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+                if (user) this.currentUser = user;
+            },
+            navigateToLogin() {
+                window.location.href = 'account.html';
+            },
+            handleUserCommand(command) {
+                if (command === 'info') window.location.href = 'information.html';
+                else if (command === 'logout') this.logout();
+            },
+            logout() {
+                sessionStorage.removeItem('currentUser');
+                this.currentUser = null;
+                this.$message.success('已退出登录');
+                setTimeout(() => window.location.reload(), 1000);
+            },
+            // 药品管理功能 - 连接后端数据库
+            getDrugs() {
+                axios.get('/drugs/getAllDrugs')
+                    .then(response => {
+                        this.drugList = response.data;
+                    })
+                    .catch(error => {
+                        console.error('获取药品列表失败', error);
+                        this.$message.error('获取药品列表失败');
+                    });
+            },
+            searchDrugs() {
+                if (!this.searchKeyword) {
+                    this.getDrugs();
+                    return;
+                }
+                axios.get(`/drugs/searchDrugs?keyword=${this.searchKeyword}`)
+                    .then(response => {
+                        this.drugList = response.data;
+                    })
+                    .catch(error => {
+                        console.error('搜索药品失败', error);
+                        this.$message.error('搜索药品失败');
+                    });
+            },
+            showAddDialog(drug = null) {
+                this.selectedDrug = drug;
+                if (drug) {
+                    this.form = { ...drug };
+                    this.addDialogVisible = true;
+                } else {
+                    this.form = {
+                        drugId: null,
+                        drugName: '',
+                        publisher: '',
+                        drugInfo: '',
+                        drugEffect: '',
+                        drugImg: ''
+                    };
+                    this.addDialogVisible = true;
+                }
+            },
+            editDrug(drug) {
+                this.showAddDialog(drug);
+            },
+            deleteDrug(id) {
+                console.log('要删除的药品 ID：', id); // 打印 ID ，检查是否正确
+                this.$confirm('确定要删除该药品信息吗？', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.delete(`/drugs/deleteDrug/${id}`)
+                        .then(() => {
+                            this.$message.success('删除成功');
+                            this.getDrugs();
+                        })
+                        .catch(error => {
+                            console.error('删除药品失败', error);
+                            this.$message.error('删除药品失败');
+                        });
+                }).catch(() => this.$message.info('已取消删除'));
+            },
+            submitForm() {
+                console.log('提交的表单数据：', this.form); // 新增打印，检查 drugImg 是否存在
+                this.$refs.formRef.validate(valid => {
+                    if (valid) {
+                        if (this.form.drugId) {
+                            // 修改药品
+                            axios.put('/drugs/updateDrug', this.form)
+                                .then(() => {
+                                    this.$message.success('更新成功');
+                                    this.addDialogVisible = false;
+                                    this.getDrugs();
+                                })
+                                .catch(error => {
+                                    console.error('更新药品失败', error);
+                                    this.$message.error('更新药品失败');
+                                });
+                        } else {
+                            // 添加药品
+                            axios.post('/drugs/addDrug', this.form)
+                                .then(() => {
+                                    this.$message.success('添加成功');
+                                    this.addDialogVisible = false;
+                                    this.getDrugs();
+                                })
+                                .catch(error => {
+                                    console.error('添加药品失败', error);
+                                    this.$message.error('添加药品失败');
+                                });
+                        }
+                    } else {
+                        console.log('表单验证失败');
+                        return false;
+                    }
+                });
+            },
+            // 图片上传功能
+            beforeUpload(file) {
+                const isJPG = file.type === 'image/jpeg' || file.type === 'image/png';
+                const isLt2M = file.size / 1024 / 1024 < 2;
+                if (!isJPG) this.$message.error('上传图片只能是 JPG/PNG 格式!');
+                if (!isLt2M) this.$message.error('上传图片大小不能超过 2MB!');
+                return isJPG && isLt2M;
+            },
+            handleFormUploadSuccess(response, file) {
+                this.$message.success('图片上传成功');
+                // 确保获取到带有后缀的文件名
+                this.form.drugImg = response.fileName;
+            },
+            // 更新按钮功能 - 刷新页面
+            refreshPage() {
+                this.$message.info('正在刷新数据...');
+                this.getDrugs();
+            },
+            // 获取药品图片URL
+            getDrugImageUrl(imgName) {
+                if (!imgName) return 'https://via.placeholder.com/300x180?text=暂无图片';
+                // 添加随机参数，确保每次请求的URL不同
+                const randomParam = new Date().getTime();
+                return `/images/drugs/${imgName}?v=${randomParam}`;
+            }
+        }
+    });
+</script>
+</body>
+</html>

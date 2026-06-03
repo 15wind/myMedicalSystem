@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>智慧医疗系统 - 医生信息管理</title>
+    <!-- 引入Vue和Element UI -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #1a6fbf;
+            --secondary-color: #2a9d8f;
+            --accent-color: #e76f51;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+        }
+
+        .el-header {
+            background: linear-gradient(135deg, var(--primary-color), #0d5494);
+            color: white;
+            line-height: 60px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .header-title {
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .login-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .login-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .user-dropdown {
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .user-dropdown:hover {
+            color: #e6e6e6;
+        }
+
+        .el-footer {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            line-height: 60px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .el-aside {
+            width: 200px;
+            background: linear-gradient(to bottom, #2c3e50, #34495e);
+            color: white;
+            padding: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .el-container {
+            height: 86vh;
+        }
+
+        .nav-button {
+            width: 90%;
+            margin: 8px auto;
+            text-align: left;
+            border: none;
+            border-radius: 6px;
+            display: block;
+            transition: all 0.3s;
+            color: #ecf0f1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .nav-button i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .nav-button.type-primary {
+            background: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(26, 111, 191, 0.4);
+        }
+
+        .el-main {
+            padding: 20px;
+            overflow: auto;
+            background-color: #f5f7fa;
+        }
+
+        .search-area {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+        }
+
+        /* 新增/编辑医生对话框 */
+        .el-dialog {
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .el-dialog__header {
+            background: linear-gradient(to right, #1a6fbf, #2a9d8f);
+            color: white;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+
+        .el-dialog__title {
+            color: white;
+        }
+
+        .el-dialog__body {
+            padding: 20px;
+        }
+
+        .el-dialog__footer {
+            padding: 10px 20px 20px;
+            text-align: right;
+        }
+
+        /* 自定义表格操作按钮样式 */
+        .table-actions {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .table-actions .el-button {
+            padding: 5px 8px;
+            min-width: 50px;
+        }
+    </style>
+</head>
+
+<body>
+<div id="app">
+    <el-container>
+        <el-header>
+            <div class="header-title">慧医数字医疗应用系统 - {{ currentModuleTitle }}</div>
+            <div class="user-info">
+                <button v-if="!currentUser" class="login-btn" @click="navigateToLogin">
+                    <i class="el-icon-user"></i> 登录
+                </button>
+                <el-dropdown v-else @command="handleUserCommand">
+                       <span class="user-dropdown">
+                           <i class="el-icon-user"></i>
+                           <span class="user-name">{{ currentUser.realname || currentUser.username }}</span>
+                           <i class="el-icon-arrow-down el-icon--right"></i>
+                       </span>
+                    <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item command="info">个人信息</el-dropdown-item>
+                        <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                    </el-dropdown-menu>
+                </el-dropdown>
+            </div>
+        </el-header>
+        <el-container>
+            <el-aside>
+                <div class="nav-buttons">
+                    <!-- 首页 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('home')">
+                        <i class="el-icon-message"></i> 首页
+                    </el-button>
+
+                    <!-- 医生信息管理 -->
+                    <el-button class="nav-button type-primary" type="primary" @click="navigateTo('doctor')">
+                        <i class="el-icon-user"></i> 医生信息管理
+                    </el-button>
+
+                    <!-- 药品信息管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('medicine')">
+                        <i class="el-icon-sell"></i> 药品信息管理
+                    </el-button>
+
+                    <!-- 医药公司管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('drugcompany')">
+                        <i class="el-icon-s-claim"></i> 医药公司管理
+                    </el-button>
+
+                    <!-- 城市信息管理功能 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('china')">
+                        <i class="el-icon-location"></i> 城市信息管理
+                    </el-button>
+
+                    <!-- 医药政策管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('medical_policy')">
+                        <i class="el-icon-document"></i> 医药政策管理
+                    </el-button>
+
+                    <!-- 公司政策管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('companypolicy')">
+                        <i class="el-icon-location"></i> 公司政策管理
+                    </el-button>
+
+                    <!-- 必备材料管理功能 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('material')">
+                        <i class="el-icon-folder"></i> 必备材料管理
+                    </el-button>
+                    <el-button class="nav-button" type="info" @click="navigateTo('sale_place')">
+                        <i class="el-icon-location"></i> 销售地点管理
+                    </el-button>
+                </div>
+            </el-aside>
+            <el-container>
+                <el-main>
+                    <!-- 搜索区域 -->
+                    <div class="search-area">
+                        <el-row :gutter="20">
+                            <el-col :span="6">
+                                <el-input v-model="searchName" placeholder="医生姓名" clearable @keyup.enter.native="searchDoctors">
+                                    <template #append>
+                                        <el-button @click="searchDoctors">搜索</el-button>
+                                    </template>
+                                </el-input>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-select v-model="searchLevel" placeholder="医师级别" clearable @change="searchDoctors">
+                                    <el-option label="全部" value=""></el-option>
+                                    <el-option v-for="(level, id) in levelMap" :key="id" :value="id" :label="level"></el-option>
+                                </el-select>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-input v-model="searchHospital" placeholder="所属医院" clearable @keyup.enter.native="searchDoctors">
+                                    <template #append>
+                                        <el-button @click="searchDoctors">搜索</el-button>
+                                    </template>
+                                </el-input>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-button type="primary" @click="showAddDoctorDialog">新增医生</el-button>
+                                <el-button @click="refreshDoctors">刷新</el-button>
+                            </el-col>
+                        </el-row>
+                    </div>
+
+                    <!-- 空状态显示 -->
+                    <el-empty v-if="filteredData.length === 0" description="暂无医生数据"></el-empty>
+
+                    <!-- 医生信息表格 -->
+                    <el-table v-else :data="currentPageData" border style="width: 100%" :loading="loading">
+                        <el-table-column fixed prop="id" label="id" width="60"></el-table-column>
+                        <el-table-column prop="name" label="医生姓名" width="80"></el-table-column>
+                        <el-table-column prop="age" label="年龄" width="60"></el-table-column>
+                        <el-table-column label="性别" width="60">
+                            <template slot-scope="scope">
+                                {{ getSexText(scope.row.sex) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="医师级别" width="90">
+                            <template slot-scope="scope">
+                                {{ getLevelText(scope.row.level_id) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="phone" label="联系方式" width="120"></el-table-column>
+                        <el-table-column prop="type_id" label="诊治类别" width="80"></el-table-column>
+                        <el-table-column prop="hospital" label="所属医院" width="150"></el-table-column>
+                        <el-table-column prop="updatetime" label="更新时间" width="210">
+                            <template slot-scope="scope">
+                                {{ formatDateTime(scope.row.updatetime) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="createtime" label="创建时间" width="210">
+                            <template slot-scope="scope">
+                                {{ formatDateTime(scope.row.createtime) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="account_id" label="账号id" width="70"></el-table-column>
+                        <!-- 操作按钮列 -->
+                        <el-table-column label="操作" width="120">
+                            <template slot-scope="scope">
+                                <div class="table-actions">
+                                    <el-button @click="editDoctor(scope.row)" size="mini" type="primary">编辑</el-button>
+                                    <el-button @click="deleteDoctor(scope.row.id)" size="mini" type="danger">删除</el-button>
+                                </div>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+
+                    <!-- 分页组件 -->
+                    <el-pagination @current-change="handleCurrentChange" @size-change="handleSizeChange"
+                                   :current-page="currentPage" :page-size="pageSize" :page-sizes="[5, 10, 15, 20]"
+                                   :total="filteredData.length" layout="total, sizes, prev, pager, next, jumper">
+                    </el-pagination>
+                </el-main>
+            </el-container>
+        </el-container>
+        <el-footer>
+            慧医数字医疗应用系统 - 版权所有 © 2025
+        </el-footer>
+
+        <!-- 新增/编辑医生对话框 -->
+        <el-dialog :visible.sync="dialogVisible" title="医生信息管理" :before-close="handleDialogClose">
+            <el-form :model="formData" :rules="formRules" ref="formRef" label-width="120px">
+                <!-- ID输入项 - 新增时显示，编辑时隐藏 -->
+                <el-form-item label="ID" prop="id" v-if="dialogType === 'add'">
+                    <el-input v-model="formData.id" placeholder="系统自动生成" disabled style="background-color: #f5f5f5;"></el-input>
+                </el-form-item>
+
+                <el-form-item label="医生姓名" prop="name">
+                    <el-input v-model="formData.name" placeholder="请输入医生姓名"></el-input>
+                </el-form-item>
+                <el-form-item label="年龄" prop="age">
+                    <el-input-number v-model="formData.age" :min="18" :max="80" placeholder="请输入年龄"></el-input-number>
+                </el-form-item>
+                <el-form-item label="性别" prop="sex">
+                    <el-radio-group v-model="formData.sex">
+                        <el-radio label="1">男</el-radio>
+                        <el-radio label="2">女</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="医师级别" prop="level_id">
+                    <el-select v-model="formData.level_id" placeholder="请选择医师级别" clearable>
+                        <el-option v-for="(level, id) in levelMap" :key="id" :value="id" :label="level"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="联系方式" prop="phone">
+                    <el-input v-model="formData.phone" placeholder="请输入联系方式"></el-input>
+                </el-form-item>
+                <el-form-item label="诊治类别" prop="type_id">
+                    <el-input v-model="formData.type_id" placeholder="请输入诊治类别"></el-input>
+                </el-form-item>
+                <el-form-item label="所属医院" prop="hospital">
+                    <el-input v-model="formData.hospital" placeholder="请输入所属医院"></el-input>
+                </el-form-item>
+                <!-- 新增创建时间输入项 -->
+                <el-form-item label="创建时间" prop="createtime">
+                    <el-date-picker
+                            v-model="formData.createtime"
+                            type="datetime"
+                            placeholder="请选择创建时间">
+                    </el-date-picker>
+                </el-form-item>
+                <!-- 新增更新时间输入项 -->
+                <el-form-item label="更新时间" prop="updatetime">
+                    <el-date-picker
+                            v-model="formData.updatetime"
+                            type="datetime"
+                            placeholder="请选择更新时间">
+                    </el-date-picker>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                   <span class="dialog-footer">
+                       <el-button @click="dialogVisible = false">取消</el-button>
+                       <el-button type="primary" :loading="saving" @click="saveDoctor">保存</el-button>
+                   </span>
+            </template>
+        </el-dialog>
+    </el-container>
+</div>
+
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tableData: [],
+                filteredData: [],
+                sexMap: {
+                    '1': '男',
+                    '2': '女'
+                },
+                levelMap: {
+                    '1': '主任医师',
+                    '2': '普通医师',
+                    '3': '实习医师'
+                },
+                hospitalList: [],
+                currentPage: 1,
+                pageSize: 5,
+                currentModule: 'doctor',
+                currentModuleTitle: '医生信息管理',
+                apiBaseUrl: 'http://localhost:80',
+                loading: false,
+                saving: false,
+                dialogVisible: false,
+                dialogType: 'add', // 'add' 或 'edit'
+                formData: {
+                    id: null,
+                    name: '',
+                    age: 30,
+                    sex: '1',
+                    level_id: '2',
+                    phone: '',
+                    type_id: '',
+                    hospital: '',
+                    account_id: null
+                },
+                formRules: {
+                    name: [
+                        { required: true, message: '请输入医生姓名', trigger: 'blur' }
+                    ],
+                    age: [
+                        { required: true, message: '请输入年龄', trigger: 'blur' },
+                        { type: 'number', message: '年龄必须为数字', trigger: 'blur' }
+                    ],
+                    phone: [
+                        { required: true, message: '请输入联系方式', trigger: 'blur' },
+                        { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+                    ],
+                    hospital: [
+                        { required: true, message: '请输入所属医院', trigger: 'blur' }
+                    ]
+                },
+                searchName: '',
+                searchLevel: '',
+                searchHospital: '',
+                currentUser: null, // 存储当前登录用户信息
+                isEditing: false, // 标记是否为编辑状态
+                originalId: null, // 保存原始ID
+                // 可根据实际路由配置模块路径
+                moduleRoutes: {
+                    home: '/home',
+                    doctor: '/doctor',
+                    drugcompany: '/drugcompany',
+                    medical_policy: '/medical_policy',
+                    china: '/china',
+                    medicine: '/medicine',
+                    material: '/material',
+                    companypolicy: '/companypolicy',
+                    sale_place: '/sale_place',
+                }
+            };
+        },
+        computed: {
+            // 计算当前页数据
+            currentPageData() {
+                const startIndex = (this.currentPage - 1) * this.pageSize;
+                return this.filteredData.slice(startIndex, startIndex + this.pageSize);
+            }
+        },
+        mounted() {
+            // 检查是否有登录用户
+            this.checkLoginStatus();
+        },
+        methods: {
+            // 生成临时ID（仅用于前端表单验证，实际ID由后端生成）
+            generateTempId() {
+                return 'temp_' + Date.now();
+            },
+
+            // 格式化日期时间
+            formatDateTime(isoString) {
+                if (!isoString) return '';
+                try {
+                    const date = new Date(isoString);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                } catch (e) {
+                    return '格式错误';
+                }
+            },
+            // 获取性别文本
+            getSexText(sexCode) {
+                const code = String(sexCode);
+                return this.sexMap[code] || '未知';
+            },
+            // 获取职称文本
+            getLevelText(levelId) {
+                const code = String(levelId);
+                return this.levelMap[code] || `未知级别(${code})`;
+            },
+            // 获取医生列表
+            getDoctors() {
+                this.loading = true;
+                axios.get(`${this.apiBaseUrl}/doctors/queryDoctors`)
+                    .then(response => {
+                        this.tableData = response.data || [];
+                        this.filteredData = this.tableData;
+                        this.extractHospitals();
+                        console.log('医生数据加载成功:', this.tableData);
+                        this.loading = false;
+                    })
+                    .catch(error => {
+                        console.error('获取医生数据失败:', error);
+                        this.$message.error('获取医生数据失败，请稍后重试');
+                        this.loading = false;
+                    });
+            },
+            // 提取医院列表用于下拉框
+            extractHospitals() {
+                const hospitals = new Set();
+                this.tableData.forEach(doctor => {
+                    if (doctor.hospital) {
+                        hospitals.add(doctor.hospital);
+                    }
+                });
+                this.hospitalList = Array.from(hospitals);
+            },
+            // 搜索医生
+            searchDoctors() {
+                this.currentPage = 1;
+                this.filteredData = this.tableData.filter(doctor => {
+                    const matchName = this.searchName === '' ||
+                        doctor.name.toLowerCase().includes(this.searchName.toLowerCase());
+                    const matchLevel = this.searchLevel === '' ||
+                        doctor.level_id.toString() === this.searchLevel;
+                    const matchHospital = this.searchHospital === '' ||
+                        doctor.hospital.toLowerCase().includes(this.searchHospital.toLowerCase());
+
+                    return matchName && matchLevel && matchHospital;
+                });
+
+                if (this.filteredData.length === 0) {
+                    this.$message.warning('未找到匹配的医生数据');
+                }
+            },
+            // 刷新医生列表
+            refreshDoctors() {
+                this.searchName = '';
+                this.searchLevel = '';
+                this.searchHospital = '';
+                this.getDoctors();
+                this.$message.success('数据已刷新');
+            },
+            // 分页切换
+            handleCurrentChange(page) {
+                this.currentPage = page;
+            },
+            // 每页数量变化
+            handleSizeChange(size) {
+                this.pageSize = size;
+                this.currentPage = 1;
+            },
+            // 显示新增医生对话框
+            showAddDoctorDialog() {
+                this.dialogType = 'add';
+                this.isEditing = false;
+                this.formData = {
+                    id: this.generateTempId(), // 临时ID，仅用于前端表单验证
+                    name: '',
+                    age: 30,
+                    sex: '1',
+                    level_id: '2',
+                    phone: '',
+                    type_id: '',
+                    hospital: '',
+                    account_id: null
+                };
+                this.dialogVisible = true;
+            },
+            // 编辑医生
+            editDoctor(doctor) {
+                if (typeof doctor === 'object') {
+                    this.dialogType = 'edit';
+                    this.isEditing = true;
+                    this.originalId = doctor.id;
+                    // 克隆医生数据，避免引用类型问题
+                    this.formData = { ...doctor };
+                    this.dialogVisible = true;
+                }
+            },
+            // 处理对话框关闭
+            handleDialogClose(done) {
+                this.$refs.formRef && this.$refs.formRef.resetFields();
+                done();
+            },
+            // 保存医生信息
+            saveDoctor() {
+                this.$refs.formRef.validate(valid => {
+                    if (valid) {
+                        this.saving = true;
+
+                        // 准备提交的数据
+                        const submitData = { ...this.formData };
+
+                        if (this.dialogType === 'add') {
+                            // 新增医生时，不传递ID或传递null，由后端生成
+                            delete submitData.id;
+
+                            axios.post(`${this.apiBaseUrl}/doctors/addDoctor`, submitData)
+                                .then(response => {
+                                    if (response.data && response.data.success) {
+                                        // 获取后端返回的完整医生数据（包含生成的ID）
+                                        const newDoctor = response.data.data;
+                                        // 添加到表格数据
+                                        this.tableData.unshift(newDoctor);
+                                        // 重新搜索以更新过滤数据
+                                        this.searchDoctors();
+                                        this.dialogVisible = false;
+                                        this.$message.success('医生信息添加成功');
+                                    } else {
+                                        this.$message.error('医生信息添加失败');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('添加医生失败:', error);
+                                    this.$message.error('添加医生失败，请稍后重试');
+                                })
+                                .finally(() => {
+                                    this.saving = false;
+                                });
+                        } else {
+                            // 编辑医生时，确保使用原始ID
+                            submitData.id = this.originalId;
+
+                            axios.put(`${this.apiBaseUrl}/doctors/updateDoctor`, submitData)
+                                .then(response => {
+                                    if (response.data && response.data.success) {
+                                        const index = this.tableData.findIndex(item => item.id === this.originalId);
+                                        if (index !== -1) {
+                                            this.tableData.splice(index, 1, { ...submitData });
+                                            this.searchDoctors();
+                                        }
+                                        this.dialogVisible = false;
+                                        this.$message.success('医生信息更新成功');
+                                    } else {
+                                        this.$message.error('医生信息更新失败');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('更新医生失败:', error);
+                                    this.$message.error('更新医生失败，请稍后重试');
+                                })
+                                .finally(() => {
+                                    this.saving = false;
+                                });
+                        }
+                    } else {
+                        this.$message.warning('请完善表单信息');
+                        return false;
+                    }
+                });
+            },
+            // 删除医生
+            deleteDoctor(doctorId) {
+                const doctor = this.tableData.find(item => item.id === doctorId);
+                if (!doctor) {
+                    this.$message.warning('医生信息不存在');
+                    return;
+                }
+
+                this.$confirm(`确定要删除医生 ${doctor.name} 的信息吗?`, '警告', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    this.loading = true;
+
+                    // 实际项目中应发送删除请求到后端
+                    axios.delete(`${this.apiBaseUrl}/doctors/${doctorId}`)
+                        .then(response => {
+                            if (response.data && response.data.success) {
+                                // 过滤掉要删除的医生
+                                this.tableData = this.tableData.filter(item => item.id !== doctorId);
+                                this.searchDoctors();
+                                this.$message.success('删除成功');
+                            } else {
+                                this.$message.error('删除医生失败');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('删除医生失败:', error);
+                            this.$message.error('删除医生失败，请稍后重试');
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                }).catch(() => {
+                    this.$message.info('取消删除');
+                });
+            },
+            // 导航方法 - 改进为页面跳转
+            navigateTo(module) {
+                this.currentModule = module;
+                // 动态设置标题
+                this.currentModuleTitle = this.getModuleTitle(module);
+                // 实际项目中请替换为前端路由或后端接口跳转
+                this.$message.info(`正在跳转至 ${this.currentModuleTitle}...`);
+                // 示例：跳转到对应HTML页面（需提前创建页面文件）
+                switch (module) {
+                    case 'home': window.location.href = 'index1.html'; break;
+                    case 'doctor': window.location.href = 'doctor1.html'; break;
+                    case 'drugcompany': window.location.href = 'drugcompany1.html'; break;
+                    case 'medical_policy': window.location.href = 'medical_policy1.html'; break;
+                    case 'china': window.location.href = 'china1.html'; break;
+                    case 'medicine': window.location.href = 'drug1.html'; break; // 沿用原药品页面
+                    case 'material': window.location.href = 'material1.html'; break;
+                    case 'companypolicy': window.location.href = 'companypolicy1.html'; break;
+                    case 'sale_place': window.location.href = 'sale_place1.html'; break;
+                }
+            },
+            getModuleTitle(module) {
+                const titleMap = {
+                    home: '首页',
+                    doctor: '医生信息管理',
+                    drugcompany: '医药公司管理',
+                    medical_policy: '医药政策管理',
+                    china: '城市信息管理',
+                    medicine: '药品信息管理',
+                    material: '必备材料管理',
+                    companypolicy: '公司政策管理',
+                    sale_place: '销售地点管理'
+                };
+                return titleMap[module] || '未知模块';
+            },
+            // 检查登录状态
+            checkLoginStatus() {
+                const user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+                if (user) {
+                    this.currentUser = user;
+                }
+            },
+            // 跳转到登录页面
+            navigateToLogin() {
+                window.location.href = 'account.html';
+            },
+            // 处理用户操作
+            handleUserCommand(command) {
+                if (command === 'info') {
+                    window.location.href = 'information.html';
+                } else if (command === 'logout') {
+                    this.logout();
+                }
+            },
+            // 退出登录
+            logout() {
+                sessionStorage.removeItem('currentUser');
+                this.currentUser = null;
+                this.$message.success('已退出登录');
+                // 刷新页面
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        },
+        created() {
+            this.getDoctors();
+        }
+    });
+</script>
+</body>
+</html>

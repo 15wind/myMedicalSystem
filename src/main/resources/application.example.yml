@@ -1,0 +1,21 @@
+server:
+  port: 80
+  servlet:
+    context-path: /
+
+spring:
+  datasource:
+# 启动类
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/demo
+    hikari:
+      username: root
+      password: 'your_password_here'   # 替换为你的真实密码
+  mybatis-plus:
+    configuration:
+      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 2MB
+      max-request-size: 2MB

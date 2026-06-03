@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mymedicalsystem.mapper.CompanyPolicyMapper">
+    <select id="searchPolicies" resultType="com.example.mymedicalsystem.model.CompanyPolicy">
+        SELECT * FROM company_policy
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+            AND (title LIKE CONCAT('%', #{keyword}, '%')
+            OR message LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="id != null">
+            AND id = #{id, jdbcType=BIGINT} <!-- 明确指定 JDBC 类型 -->
+        </if>
+    </select>
+</mapper>

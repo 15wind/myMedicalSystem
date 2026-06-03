@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>智慧医疗系统 - 药品政策管理</title>
+    <!-- 引入Vue和Element UI -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #1a6fbf;
+            --secondary-color: #2a9d8f;
+            --accent-color: #e76f51;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+        }
+
+        .el-header {
+            background: linear-gradient(135deg, var(--primary-color), #0d5494);
+            color: white;
+            line-height: 60px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .header-title {
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .login-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .login-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .user-dropdown {
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .user-dropdown:hover {
+            color: #e6e6e6;
+        }
+
+        .el-footer {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            line-height: 60px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .el-aside {
+            width: 200px;
+            background: linear-gradient(to bottom, #2c3e50, #34495e);
+            color: white;
+            padding: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .el-container {
+            height: 86vh;
+        }
+
+        .nav-button {
+            width: 90%;
+            margin: 8px auto;
+            text-align: left;
+            border: none;
+            border-radius: 6px;
+            display: block;
+            transition: all 0.3s;
+            color: #ecf0f1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .nav-button i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .nav-button.type-primary {
+            background: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(26, 111, 191, 0.4);
+        }
+
+        .el-main {
+            padding: 20px;
+            overflow: auto;
+            background-color: #f5f7fa;
+        }
+
+        /* 搜索区域样式 */
+        .search-area {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f5f7fa;
+            border-radius: 4px;
+        }
+
+        /* 操作按钮组样式 */
+        .action-buttons {
+            margin-bottom: 20px;
+        }
+
+        /* 政策内容样式 */
+        .policy-content {
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 100px;
+            overflow: auto;
+            border: 1px solid #eee;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+
+        /* 富文本编辑器样式 */
+        .policy-editor {
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            min-height: 200px;
+            padding: 10px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+<div id="app">
+    <el-container>
+        <el-header>
+            <div class="header-title">慧医数字医疗应用系统 - 药品政策查询</div>
+            <div class="user-info">
+                <button v-if="!currentUser" class="login-btn" @click="navigateToLogin">
+                    <i class="el-icon-user"></i> 登录
+                </button>
+                <el-dropdown v-else @command="handleUserCommand">
+                        <span class="user-dropdown">
+                            <i class="el-icon-user"></i>
+                            <span class="user-name">{{ currentUser.realname || currentUser.username }}</span>
+                            <i class="el-icon-arrow-down el-icon--right"></i>
+                        </span>
+                    <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item command="info">个人信息</el-dropdown-item>
+                        <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                    </el-dropdown-menu>
+                </el-dropdown>
+            </div>
+        </el-header>
+        <el-container>
+            <el-aside>
+                <!-- 将侧边栏改为按钮组 -->
+                <div class="nav-buttons">
+                    <el-button class="nav-button" type="info" @click="navigateTo('home')">
+                        <i class="el-icon-message"></i> 首页
+                    </el-button>
+
+                    <!-- 医生信息管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('doctor')">
+                        <i class="el-icon-user"></i> 医生信息查询
+                    </el-button>
+
+                    <!-- 药品信息管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('medicine')">
+                        <i class="el-icon-sell"></i> 药品信息查询
+                    </el-button>
+
+                    <!-- 医药公司管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('drugcompany')">
+                        <i class="el-icon-s-claim"></i> 医药公司查询
+                    </el-button>
+
+                    <!-- 城市信息管理功能 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('china')">
+                        <i class="el-icon-location"></i> 城市信息查询
+                    </el-button>
+
+                    <!-- 医药政策管理 -->
+                    <el-button class="nav-button type-primary" type="primary" @click="navigateTo('medical_policy')">
+                        <i class="el-icon-document"></i> 医药政策查询
+                    </el-button>
+
+                    <!-- 公司政策管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('companypolicy')">
+                        <i class="el-icon-location"></i> 公司政策查询
+                    </el-button>
+
+                    <!-- 必备材料管理功能 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('material')">
+                        <i class="el-icon-folder"></i> 必备材料查询
+                    </el-button>
+                    <el-button class="nav-button" type="info" @click="navigateTo('sale_place')">
+                        <i class="el-icon-location"></i> 销售地点查询
+                    </el-button>
+                </div>
+            </el-aside>
+            <el-container>
+                <el-main>
+                    <!-- 搜索区域 -->
+                    <div class="search-area">
+                        <el-row :gutter="20">
+                            <el-col :span="6">
+                                <el-input
+                                        v-model="searchId"
+                                        placeholder="请输入ID"
+                                        style="width: 100%">
+                                    <el-button slot="append" @click="searchPolicies">搜索</el-button>
+                                </el-input>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-input
+                                        v-model="searchTitle"
+                                        placeholder="请输入标题"
+                                        style="width: 100%">
+                                    <el-button slot="append" @click="searchPolicies">搜索</el-button>
+                                </el-input>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-button type="info" @click="resetSearch">重置搜索</el-button>
+                            </el-col>
+                            <!-- 移除添加按钮 -->
+                        </el-row>
+                    </div>
+
+                    <!-- 药品政策数据表格 -->
+                    <el-table
+                            :data="tableData"
+                            border
+                            style="width: 100%">
+                        <el-table-column fixed prop="id" label="ID" width="55"></el-table-column>
+                        <el-table-column prop="title" label="政策标题" width="180"></el-table-column>
+                        <el-table-column label="政策内容">
+                            <template slot-scope="scope">
+                                <div class="policy-content">{{ scope.row.message }}</div>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="city_id" label="城市ID" width="120"></el-table-column>
+                        <el-table-column prop="update_time" label="更新时间" width="210">
+                            <template slot-scope="scope">
+                                {{ formatDateTime(scope.row.update_time) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="create_time" label="创建时间" width="210">
+                            <template slot-scope="scope">
+                                {{ formatDateTime(scope.row.create_time) }}
+                            </template>
+                        </el-table-column>
+                        <!-- 移除操作按钮列 -->
+                    </el-table>
+
+                    <!-- 分页组件 -->
+                    <el-pagination
+                            @current-change="handleCurrentChange"
+                            :current-page="currentPage"
+                            :page-size="pageSize"
+                            :total="tableData.length"
+                            layout="total, prev, pager, next, jumper">
+                    </el-pagination>
+                </el-main>
+            </el-container>
+        </el-container>
+        <el-footer>
+            <span>慧医数字医疗应用系统 - 版权所有 © 2025</span>
+        </el-footer>
+    </el-container>
+</div>
+
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                // 政策数据
+                tableData: [],
+                originalTableData: [], // 存储原始数据用于重置搜索
+                searchId: '',
+                searchTitle: '',
+                currentPage: 1,
+                pageSize: 10,
+                currentModule: 'policy',
+                currentUser: null, // 存储当前登录用户信息
+                // API基础URL（请根据实际后端接口调整）
+                apiBaseUrl: 'http://localhost:80' // 示例URL，需替换为实际后端地址
+            };
+        },
+        methods: {
+            // 日期格式化
+            formatDateTime(isoString) {
+                if (!isoString) return '';
+                try {
+                    const date = new Date(isoString);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                } catch (e) {
+                    return '格式错误';
+                }
+            },
+
+            // 搜索政策
+            searchPolicies() {
+                console.log('搜索条件: ID=', this.searchId, '标题=', this.searchTitle);
+                this.$message({
+                    message: `搜索条件: ID=${this.searchId || '未指定'} 标题=${this.searchTitle || '未指定'}`,
+                    type: 'info'
+                });
+                this.filterTableData();
+            },
+
+            // 重置搜索
+            resetSearch() {
+                this.searchId = '';
+                this.searchTitle = '';
+                this.tableData = [...this.originalTableData]; // 恢复原始数据
+                this.currentPage = 1;
+                this.$message({
+                    message: '已重置搜索条件',
+                    type: 'info'
+                });
+            },
+
+            // 过滤表格数据
+            filterTableData() {
+                let filteredData = [...this.originalTableData];
+
+                // 按ID过滤
+                if (this.searchId) {
+                    const idNumber = parseInt(this.searchId, 10);
+                    if (!isNaN(idNumber)) {
+                        filteredData = filteredData.filter(policy => policy.id === idNumber);
+                    } else {
+                        filteredData = []; // 如果ID不是有效数字，返回空数组
+                    }
+                }
+
+                // 按标题过滤（如果ID已过滤且结果为空，则不再按标题过滤）
+                if (this.searchTitle && filteredData.length > 0) {
+                    filteredData = filteredData.filter(policy =>
+                        policy.title.toLowerCase().includes(this.searchTitle.toLowerCase())
+                    );
+                }
+
+                // 更新表格数据
+                this.tableData = filteredData;
+                this.currentPage = 1; // 重置为第一页
+            },
+
+            handleCurrentChange(page) {
+                this.currentPage = page;
+                this.$message({
+                    message: `切换到第 ${page} 页`,
+                    type: 'info'
+                });
+            },
+
+            // 获取政策列表
+            getMedical_policys() {
+                axios.get(`${this.apiBaseUrl}/medical_policys/queryMedical_policys`)
+                    .then(response => {
+                        this.tableData = response.data;
+                        this.originalTableData = [...response.data];
+                        console.log('医药政策加载成功:', this.tableData);
+                    })
+                    .catch(error => {
+                        console.error('获取数据失败', error);
+                        this.$message.error('加载政策失败');
+                    });
+            },
+
+            // 导航方法 - 改进为页面跳转
+            navigateTo(module) {
+                this.currentModule = module;
+
+                // 定义模块与页面的映射关系
+                const modulePages = {
+                    'home': 'index.html',
+                    'doctor': 'doctor.html',
+                    'medicine': 'drug.html',
+                    'drugcompany': 'drugcompany.html',
+                    'china': 'china.html',
+                    'medical_policy': 'medical_policy.html',
+                    'companypolicy': 'companypolicy.html',
+                    'material': 'material.html',
+                    'sale_place': 'sale_place.html'
+                };
+
+                // 获取对应的页面URL
+                const pageUrl = modulePages[module] || 'index.html';
+
+                // 执行页面跳转
+                window.location.href = pageUrl;
+
+                // 显示跳转提示
+                this.$message.info(`跳转到 ${module} 模块`);
+            },
+
+            // 检查登录状态
+            checkLoginStatus() {
+                const user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+                if (user) {
+                    this.currentUser = user;
+                }
+            },
+
+            // 跳转到登录页面
+            navigateToLogin() {
+                window.location.href = 'account.html';
+            },
+
+            // 处理用户操作
+            handleUserCommand(command) {
+                if (command === 'info') {
+                    window.location.href = 'information.html';
+                } else if (command === 'logout') {
+                    this.logout();
+                }
+            },
+
+            // 退出登录
+            logout() {
+                sessionStorage.removeItem('currentUser');
+                this.currentUser = null;
+                this.$message.success('已退出登录');
+                // 刷新页面
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        },
+
+        created() {
+            this.getMedical_policys();
+            this.checkLoginStatus();
+        }
+    });
+</script>
+</body>
+
+</html>

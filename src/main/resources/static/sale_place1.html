@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>智慧医疗系统 - 销售地点管理</title>
+    <!-- 引入Vue和Element UI -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #1a6fbf;
+            --secondary-color: #2a9d8f;
+            --accent-color: #e76f51;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+        }
+
+        .el-header {
+            background: linear-gradient(135deg, var(--primary-color), #0d5494);
+            color: white;
+            line-height: 60px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .header-title {
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .login-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .login-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .user-dropdown {
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .user-dropdown:hover {
+            color: #e6e6e6;
+        }
+
+        .el-footer {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            line-height: 60px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .el-aside {
+            width: 200px;
+            background: linear-gradient(to bottom, #2c3e50, #34495e);
+            color: white;
+            padding: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .el-container {
+            height: 86vh;
+        }
+
+        .nav-button {
+            width: 90%;
+            margin: 8px auto;
+            text-align: left;
+            border: none;
+            border-radius: 6px;
+            display: block;
+            transition: all 0.3s;
+            color: #ecf0f1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .nav-button i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .nav-button.type-primary {
+            background: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(26, 111, 191, 0.4);
+        }
+
+        .el-main {
+            padding: 20px;
+            overflow: auto;
+            background-color: #f5f7fa;
+        }
+
+        .search-area {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* 新增/编辑销售地点对话框 */
+        .el-dialog {
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .el-dialog__header {
+            background: linear-gradient(to right, #1a6fbf, #2a9d8f);
+            color: white;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+
+        .el-dialog__title {
+            color: white;
+        }
+
+        .el-dialog__body {
+            padding: 20px;
+        }
+
+        .el-dialog__footer {
+            padding: 10px 20px 20px;
+            text-align: right;
+        }
+
+        /* 为 sale_id 添加鼠标悬停样式 */
+        .sale-id-link {
+            color: #1a6fbf;
+            cursor: pointer;
+        }
+
+        .sale-id-link:hover {
+            color: #e76f51;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+<div id="app">
+    <el-container>
+        <el-header>
+            <div class="header-title">慧医数字医疗应用系统 - {{ currentModuleTitle }}</div>
+            <div class="user-info">
+                <button v-if="!currentUser" class="login-btn" @click="navigateToLogin">
+                    <i class="el-icon-user"></i> 登录
+                </button>
+                <el-dropdown v-else @command="handleUserCommand">
+                       <span class="user-dropdown">
+                           <i class="el-icon-user"></i>
+                           <span class="user-name">{{ currentUser.realname || currentUser.username }}</span>
+                           <i class="el-icon-arrow-down el-icon--right"></i>
+                       </span>
+                    <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item command="info">个人信息</el-dropdown-item>
+                        <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                    </el-dropdown-menu>
+                </el-dropdown>
+            </div>
+        </el-header>
+        <el-container>
+            <el-aside>
+                <div class="nav-buttons">
+                    <!-- 首页按钮（保持primary样式） -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('home')">
+                        <i class="el-icon-message"></i> 首页
+                    </el-button>
+
+                    <!-- 医生信息管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('doctor')">
+                        <i class="el-icon-user"></i> 医生信息管理
+                    </el-button>
+
+                    <!-- 药品信息管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('medicine')">
+                        <i class="el-icon-sell"></i> 药品信息管理
+                    </el-button>
+
+                    <!-- 医药公司管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('drugcompany')">
+                        <i class="el-icon-s-claim"></i> 医药公司管理
+                    </el-button>
+
+                    <!-- 城市信息管理功能 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('china')">
+                        <i class="el-icon-location"></i> 城市信息管理
+                    </el-button>
+
+                    <!-- 医药政策管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('medical_policy')">
+                        <i class="el-icon-document"></i> 医药政策管理
+                    </el-button>
+
+                    <!-- 公司政策管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('companypolicy')">
+                        <i class="el-icon-location"></i> 公司政策管理
+                    </el-button>
+
+                    <!-- 必备材料管理功能 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('material')">
+                        <i class="el-icon-folder"></i> 必备材料管理
+                    </el-button>
+
+                    <!-- 销售地点管理 -->
+                    <el-button class="nav-button type-primary" type="primary" @click="navigateTo('sale_place')">
+                        <i class="el-icon-location"></i> 销售地点管理
+                    </el-button>
+                </div>
+            </el-aside>
+            <el-container>
+                <!-- 修改后的表格部分 -->
+                <el-main>
+                    <!-- 搜索区域 -->
+                    <div class="search-area">
+                        <el-button type="primary" @click="showAddSalePlaceDialog">新增销售地点</el-button>
+                        <el-button @click="refreshSalePlaces">刷新</el-button>
+                        <div style="display: flex; align-items: center; margin-left: 10px; flex-grow: 1; max-width: 400px;">
+                            <el-input
+                                    v-model="searchKeyword"
+                                    placeholder="请输入药品ID进行查询"
+                                    style="flex-grow: 1; margin-right: 10px;"
+                            ></el-input>
+                            <el-button @click="searchSalePlaces">查询</el-button>
+                        </div>
+                    </div>
+
+                    <!-- 空状态显示 -->
+                    <el-empty v-if="filteredData.length === 0 && !loading" description="暂无销售地点数据"></el-empty>
+
+                    <!-- 销售地点信息表格 -->
+                    <el-table v-else :data="currentPageData" border style="width: 100%" :loading="loading">
+                        <el-table-column fixed prop="id" label="ID" width="180"></el-table-column>
+                        <el-table-column prop="drugId" label="药品ID" width="120"></el-table-column>
+                        <el-table-column prop="saleId" label="销售ID" width="120">
+                            <template slot-scope="scope">
+                                <span class="sale-id-link" @click="goToSaleDetails(scope.row.saleId)" title="点击查看销售详情">{{ scope.row.saleId }}</span>
+                            </template>
+                        </el-table-column>
+                        <!-- 操作按钮列 -->
+                        <el-table-column label="操作" width="170">
+                            <template slot-scope="scope">
+                                <el-button @click="editSalePlace(scope.row)" size="mini" type="primary">编辑</el-button>
+                                <el-button @click="deleteSalePlace(scope.row.id)" size="mini" type="danger">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+
+                    <!-- 分页组件 -->
+                    <el-pagination
+                            @current-change="handleCurrentChange"
+                            @size-change="handleSizeChange"
+                            :current-page="currentPage"
+                            :page-size="pageSize"
+                            :page-sizes="[5, 10, 15, 20]"
+                            :total="filteredData.length"
+                            layout="total, sizes, prev, pager, next, jumper">
+                    </el-pagination>
+                </el-main>
+            </el-container>
+        </el-container>
+        <el-footer>
+            慧医数字医疗应用系统 - 版权所有 © 2025
+        </el-footer>
+
+        <!-- 新增/编辑销售地点对话框 -->
+        <el-dialog :visible.sync="dialogVisible" title="销售地点管理" :before-close="handleDialogClose">
+            <el-form :model="formData" :rules="formRules" ref="formRef" label-width="120px">
+                <!-- ID输入项 - 新增时显示，编辑时隐藏 -->
+                <el-form-item label="ID" prop="id" v-if="dialogType === 'add'">
+                    <el-input v-model="formData.id" placeholder="系统自动生成" disabled style="background-color: #f5f5f5;"></el-input>
+                </el-form-item>
+                <el-form-item label="药品ID" prop="drugId">
+                    <el-input v-model.number="formData.drugId" placeholder="请输入药品ID"></el-input>
+                </el-form-item>
+                <el-form-item label="销售ID" prop="saleId">
+                    <el-input v-model.number="formData.saleId" placeholder="请输入销售ID"></el-input>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                   <span class="dialog-footer">
+                       <el-button @click="dialogVisible = false">取消</el-button>
+                       <el-button type="primary" :loading="saving" @click="saveSalePlace">保存</el-button>
+                   </span>
+            </template>
+        </el-dialog>
+    </el-container>
+</div>
+
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tableData: [],
+                filteredData: [],
+                currentPage: 1,
+                pageSize: 5,
+                currentModule: 'sale_place',
+                currentModuleTitle: '销售地点管理',
+                apiBaseUrl: 'http://localhost:80',
+                loading: false,
+                saving: false,
+                dialogVisible: false,
+                dialogType: 'add', // 'add' 或 'edit'
+                formData: {
+                    id: null,
+                    drugId: null,
+                    saleId: null
+                },
+                formRules: {
+                    drugId: [
+                        { required: true, message: '请输入药品ID', trigger: 'blur' },
+                        { type: 'number', message: '药品ID必须为数字类型', trigger: 'blur' }
+                    ],
+                    saleId: [
+                        { required: true, message: '请输入销售ID', trigger: 'blur' },
+                        { type: 'number', message: '销售ID必须为数字类型', trigger: 'blur' }
+                    ]
+                },
+                searchKeyword: '',
+                currentUser: null, // 存储当前登录用户信息
+                isEditing: false, // 标记是否为编辑状态
+                originalId: null, // 保存原始ID
+                // 可根据实际路由配置模块路径
+                moduleRoutes: {
+                    home: 'index1.html',
+                    doctor: 'doctor1.html',
+                    drugcompany: 'drugcompany1.html',
+                    medical_policy: 'medical_policy1.html',
+                    china: 'china1.html',
+                    medicine: 'drug1.html',
+                    material: 'material1.html',
+                    companypolicy: 'companypolicy1.html',
+                    sale_place: 'sale_place1.html',
+                    sale_details: 'sale_details1.html' // 新增路由
+                }
+            };
+        },
+        computed: {
+            // 计算当前页数据
+            currentPageData() {
+                const startIndex = (this.currentPage - 1) * this.pageSize;
+                return this.filteredData.slice(startIndex, startIndex + this.pageSize);
+            }
+        },
+        mounted() {
+            // 检查是否有登录用户
+            this.checkLoginStatus();
+            this.getSalePlaces();
+        },
+        methods: {
+            // 生成临时ID（仅用于前端表单验证，实际ID由后端生成）
+            generateTempId() {
+                return Date.now();
+            },
+            // 跳转到销售详情页面
+            goToSaleDetails(saleId) {
+                if (saleId) {
+                    // 确保传递的是 saleId
+                    window.location.href = `${this.moduleRoutes.sale_details}?saleId=${saleId}`;
+                } else {
+                    this.$message.warning('销售ID无效');
+                }
+            },
+            // 获取销售地点列表
+            getSalePlaces() {
+                this.loading = true;
+                axios.get(`${this.apiBaseUrl}/drug_sale/list`)
+                    .then(response => {
+                        if (response.data && Array.isArray(response.data)) {
+                            this.tableData = response.data.map(item => ({
+                                ...item,
+                                id: Number(item.id),
+                                drugId: Number(item.drugId),
+                                saleId: Number(item.saleId)
+                            }));
+                            this.filteredData = [...this.tableData];
+                            this.$message.success('数据加载成功');
+                        } else {
+                            this.$message.error('获取数据格式错误');
+                            this.tableData = [];
+                            this.filteredData = [];
+                        }
+                    })
+                    .catch(error => {
+                        console.error('获取销售地点数据失败:', error);
+                        this.$message.error('获取数据失败');
+                        this.tableData = [];
+                        this.filteredData = [];
+                    })
+                    .finally(() => {
+                        this.loading = false;
+                    });
+            },
+            // 刷新销售地点列表
+            refreshSalePlaces() {
+                this.getSalePlaces();
+                this.$message.success('数据已刷新');
+            },
+            // 分页切换
+            handleCurrentChange(page) {
+                this.currentPage = page;
+            },
+            // 每页数量变化
+            handleSizeChange(size) {
+                this.pageSize = size;
+                this.currentPage = 1;
+            },
+            // 显示新增销售地点对话框
+            showAddSalePlaceDialog() {
+                this.dialogType = 'add';
+                this.isEditing = false;
+                this.formData = {
+                    drugId: null,
+                    saleId: null
+                };
+                this.dialogVisible = true;
+            },
+            // 编辑销售地点
+            editSalePlace(salePlace) {
+                if (salePlace && salePlace.id) {
+                    console.log('编辑销售地点:', salePlace);
+                    this.dialogType = 'edit';
+                    this.isEditing = true;
+                    this.originalId = salePlace.id;
+                    // 深拷贝销售地点数据，避免引用类型问题
+                    this.formData = JSON.parse(JSON.stringify(salePlace));
+                    this.dialogVisible = true;
+                } else {
+                    this.$message.warning('销售地点信息不完整，无法编辑');
+                }
+            },
+            // 处理对话框关闭
+            handleDialogClose(done) {
+                this.$refs.formRef && this.$refs.formRef.resetFields();
+                done();
+            },
+            // 保存销售地点信息
+            saveSalePlace() {
+                this.$refs.formRef.validate(valid => {
+                    if (valid) {
+                        this.saving = true;
+                        // 准备提交的数据
+                        const submitData = { ...this.formData };
+                        // 确保数值类型正确
+                        if (submitData.drugId !== null) submitData.drugId = Number(submitData.drugId);
+                        if (submitData.saleId !== null) submitData.saleId = Number(submitData.saleId);
+                        const requestConfig = {
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        };
+                        console.log(`准备${this.dialogType === 'add' ? '新增' : '编辑'}销售地点，提交数据:`, submitData);
+                        if (this.dialogType === 'add') {
+                            axios.post(`${this.apiBaseUrl}/drug_sale/add`, submitData, requestConfig)
+                                .then(response => {
+                                    console.log('新增销售地点API响应:', response);
+                                    // 处理成功响应
+                                    if (response.status === 200) {
+                                        // 假设后端返回新增的记录或成功消息
+                                        if (response.data && response.data.id) {
+                                            // 如果后端返回完整记录，确保ID是数值类型
+                                            const newSalePlace = {
+                                                ...response.data,
+                                                id: Number(response.data.id),
+                                                drugId: Number(response.data.drugId),
+                                                saleId: Number(response.data.saleId)
+                                            };
+                                            this.tableData.unshift(newSalePlace);
+                                        } else {
+                                            // 如果后端只返回成功消息，使用本地数据
+                                            const newSalePlace = { ...submitData };
+                                            this.tableData.unshift(newSalePlace);
+                                        }
+                                        this.filteredData = this.tableData;
+                                        this.dialogVisible = false;
+                                        this.$message.success('销售地点信息添加成功');
+                                    } else {
+                                        this.$message.error(`添加失败: ${response.statusText}`);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('添加销售地点失败:', error);
+                                    console.error('错误详情:', error.response || error.message);
+                                    if (error.response && error.response.data && error.response.data.message) {
+                                        this.$message.error(`添加失败: ${error.response.data.message}`);
+                                    } else {
+                                        this.$message.error('添加销售地点失败，请稍后重试');
+                                    }
+                                })
+                                .finally(() => {
+                                    this.saving = false;
+                                });
+                        } else {
+                            // 编辑销售地点时，确保使用原始ID
+                            submitData.id = this.originalId;
+                            axios.put(`${this.apiBaseUrl}/drug_sale/update`, submitData, requestConfig)
+                                .then(response => {
+                                    console.log('编辑销售地点API响应:', response);
+                                    if (response.status === 200) {
+                                        const index = this.tableData.findIndex(item => item.id === this.originalId);
+                                        if (index !== -1) {
+                                            // 更新本地数据，确保数值类型正确
+                                            this.tableData.splice(index, 1, {
+                                                ...submitData,
+                                                id: Number(submitData.id),
+                                                drugId: Number(submitData.drugId),
+                                                saleId: Number(submitData.saleId)
+                                            });
+                                            this.filteredData = this.tableData;
+                                        }
+                                        this.dialogVisible = false;
+                                        this.$message.success('销售地点信息更新成功');
+                                    } else {
+                                        this.$message.error(`更新失败: ${response.statusText}`);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('更新销售地点失败:', error);
+                                    console.error('错误详情:', error.response || error.message);
+                                    if (error.response && error.response.data && error.response.data.message) {
+                                        this.$message.error(`更新失败: ${error.response.data.message}`);
+                                    } else {
+                                        this.$message.error('更新销售地点失败，请稍后重试');
+                                    }
+                                })
+                                .finally(() => {
+                                    this.saving = false;
+                                });
+                        }
+                    } else {
+                        this.$message.warning('请完善表单信息');
+                        return false;
+                    }
+                });
+            },
+            // 删除销售地点
+            deleteSalePlace(salePlaceId) {
+                const salePlace = this.tableData.find(item => item.id === salePlaceId);
+                if (!salePlace) {
+                    this.$message.warning('销售地点信息不存在');
+                    return;
+                }
+                this.$confirm(`确定要删除销售地点 "${salePlace.drugId}" 的信息吗?`, '警告', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    this.loading = true;
+                    // 确保ID是数值类型
+                    const numericId = Number(salePlaceId);
+                    console.log('准备删除销售地点，ID:', numericId);
+                    axios.delete(`${this.apiBaseUrl}/drug_sale/${numericId}/delete`)
+                        .then(response => {
+                            console.log('删除销售地点API响应:', response);
+                            if (response.status === 200) {
+                                this.tableData = this.tableData.filter(item => item.id !== numericId);
+                                this.filteredData = this.tableData;
+                                this.$message.success('删除成功');
+                            } else {
+                                this.$message.error(`删除失败: ${response.data}`);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('删除销售地点失败:', error);
+                            console.error('错误详情:', error.response || error.message);
+                            if (error.response && error.response.data) {
+                                this.$message.error(`删除失败: ${error.response.data}`);
+                            } else if (error.message.includes('Network Error')) {
+                                this.$message.error('网络连接失败，请检查网络设置');
+                            } else {
+                                this.$message.error('删除销售地点失败，请稍后重试');
+                            }
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                }).catch(() => {
+                    this.$message.info('取消删除');
+                });
+            },
+            // 跳转到销售页面
+            goToSale(saleId) {
+                window.location.href = `${this.moduleRoutes.sale}?sale_id=${saleId}`;
+            },
+            // 导航方法 - 改进为页面跳转
+            navigateTo(module) {
+                this.currentModule = module;
+                // 动态设置标题
+                this.currentModuleTitle = this.getModuleTitle(module);
+                // 实际项目中请替换为前端路由或后端接口跳转
+                this.$message.info(`正在跳转至 ${this.currentModuleTitle}...`);
+                // 示例：跳转到对应HTML页面（需提前创建页面文件）
+                window.location.href = this.moduleRoutes[module];
+            },
+            getModuleTitle(module) {
+                const titleMap = {
+                    home: '首页',
+                    doctor: '医生信息管理',
+                    drugcompany: '医药公司管理',
+                    medical_policy: '医药政策管理',
+                    china: '城市信息管理',
+                    medicine: '药品信息管理',
+                    material: '必备材料管理',
+                    companypolicy: '公司政策管理',
+                    sale_place: '销售地点管理'
+                };
+                return titleMap[module] || '未知模块';
+            },
+            // 检查登录状态
+            checkLoginStatus() {
+                const user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+                if (user) {
+                    this.currentUser = user;
+                }
+            },
+            // 跳转到登录页面
+            navigateToLogin() {
+                window.location.href = 'account.html';
+            },
+            // 处理用户操作
+            handleUserCommand(command) {
+                if (command === 'info') {
+                    window.location.href = 'information.html';
+                } else if (command === 'logout') {
+                    this.logout();
+                }
+            },
+            // 退出登录
+            logout() {
+                sessionStorage.removeItem('currentUser');
+                this.currentUser = null;
+                this.$message.success('已退出登录');
+                // 刷新页面
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            },
+            // 搜索销售地点
+            searchSalePlaces() {
+                if (!this.searchKeyword.trim()) {
+                    this.filteredData = this.tableData;
+                    this.$message.info('已显示全部数据');
+                } else {
+                    const keyword = this.searchKeyword.trim();
+                    this.filteredData = this.tableData.filter(item => {
+                        return String(item.drugId).includes(keyword) || String(item.saleId).includes(keyword);
+                    });
+                    if (this.filteredData.length === 0) {
+                        this.$message.warning('未找到匹配的数据');
+                    }
+                }
+                this.currentPage = 1;
+            }
+        }
+    });
+</script>
+</body>
+
+</html>

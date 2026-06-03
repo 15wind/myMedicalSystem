@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>智慧医疗系统 - 医药公司信息管理</title>
+    <!-- 引入Vue和Element UI -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <!-- 补充引入axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #1a6fbf;
+            --secondary-color: #2a9d8f;
+            --accent-color: #e76f51;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+        }
+
+        .el-header {
+            background: linear-gradient(135deg, var(--primary-color), #0d5494);
+            color: white;
+            line-height: 60px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .header-title {
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .login-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .login-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .user-dropdown {
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .user-dropdown:hover {
+            color: #e6e6e6;
+        }
+
+        .el-footer {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            line-height: 60px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .el-aside {
+            width: 200px;
+            background: linear-gradient(to bottom, #2c3e50, #34495e);
+            color: white;
+            padding: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .el-container {
+            height: 86vh;
+        }
+
+        .nav-button {
+            width: 90%;
+            margin: 8px auto;
+            text-align: left;
+            border: none;
+            border-radius: 6px;
+            display: block;
+            transition: all 0.3s;
+            color: #ecf0f1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .nav-button i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .nav-button.type-primary {
+            background: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(26, 111, 191, 0.4);
+        }
+
+        .el-main {
+            padding: 20px;
+            overflow: auto;
+            background-color: #f5f7fa;
+        }
+
+        /* 搜索区域样式 */
+        .search-area {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f5f7fa;
+            border-radius: 4px;
+        }
+
+        /* 操作按钮组样式 */
+        .action-buttons {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+<div id="app">
+    <el-container>
+        <el-header>
+            <div class="header-title">慧医数字医疗应用系统 - 医药公司信息管理</div>
+            <div class="user-info">
+                <button v-if="!currentUser" class="login-btn" @click="navigateToLogin">
+                    <i class="el-icon-user"></i> 登录
+                </button>
+                <el-dropdown v-else @command="handleUserCommand">
+            <span class="user-dropdown">
+              <i class="el-icon-user"></i>
+              <span class="user-name">{{ currentUser.realname || currentUser.username }}</span>
+              <i class="el-icon-arrow-down el-icon--right"></i>
+            </span>
+                    <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item command="info">个人信息</el-dropdown-item>
+                        <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                    </el-dropdown-menu>
+                </el-dropdown>
+            </div>
+        </el-header>
+        <el-container>
+            <el-aside>
+                <!-- 将侧边栏改为按钮组 -->
+                <div class="nav-buttons">
+                    <el-button class="nav-button" type="info" @click="navigateTo('home')">
+                        <i class="el-icon-message"></i> 首页
+                    </el-button>
+
+                    <!-- 医生信息管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('doctor')">
+                        <i class="el-icon-user"></i> 医生信息管理
+                    </el-button>
+
+                    <!-- 药品信息管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('medicine')">
+                        <i class="el-icon-sell"></i> 药品信息管理
+                    </el-button>
+
+                    <!-- 医药公司管理 -->
+                    <el-button class="nav-button type-primary" type="primary" @click="navigateTo('drugcompany')">
+                        <i class="el-icon-s-claim"></i> 医药公司管理
+                    </el-button>
+
+                    <!-- 城市信息管理功能 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('china')">
+                        <i class="el-icon-location"></i> 城市信息管理
+                    </el-button>
+
+                    <!-- 医药政策管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('medical_policy')">
+                        <i class="el-icon-document"></i> 医药政策管理
+                    </el-button>
+
+                    <!-- 公司政策管理 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('companypolicy')">
+                        <i class="el-icon-location"></i> 公司政策管理
+                    </el-button>
+
+                    <!-- 必备材料管理功能 -->
+                    <el-button class="nav-button" type="info" @click="navigateTo('material')">
+                        <i class="el-icon-folder"></i> 必备材料管理
+                    </el-button>
+                    <el-button class="nav-button" type="info" @click="navigateTo('sale_place')">
+                        <i class="el-icon-location"></i> 销售地点管理
+                    </el-button>
+                </div>
+            </el-aside>
+            <el-container>
+                <el-main>
+                    <!-- 搜索区域 -->
+                    <div class="search-area">
+                        <el-row :gutter="20">
+                            <el-col :span="12">
+                                <el-input
+                                        v-model="searchKeyword"
+                                        placeholder="请输入公司名称"
+                                        style="width: 100%">
+                                    <el-button slot="append" @click="searchCompany">搜索</el-button>
+                                </el-input>
+                            </el-col>
+                            <el-col :span="12" class="text-right">
+                                <el-button type="primary" @click="openAddDialog">添加医药公司</el-button>
+                                <el-button type="info" @click="refreshData">刷新</el-button>
+                            </el-col>
+                        </el-row>
+                    </div>
+
+                    <!-- 医药公司数据表格 -->
+                    <el-table
+                            :data="tableData"
+                            border
+                            style="width: 100%">
+                        <el-table-column fixed prop="id" label="ID" width="90"></el-table-column>
+                        <el-table-column prop="name" label="公司名称" width="220"></el-table-column>
+                        <el-table-column prop="phone" label="联系方式" width="120"></el-table-column>
+                        <el-table-column prop="updatetime" label="更新时间" width="210">
+                            <template slot-scope="scope">
+                                {{ formatDateTime(scope.row.updatetime) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="createtime" label="创建时间" width="210">
+                            <template slot-scope="scope">
+                                {{ formatDateTime(scope.row.createtime) }}
+                            </template>
+                        </el-table-column>
+                        <!-- 操作按钮列 -->
+                        <el-table-column label="操作" width="180">
+                            <template slot-scope="scope">
+                                <el-button @click="editCompany(scope.row)" size="mini" type="primary">修改</el-button>
+                                <el-button @click="deleteCompany(scope.row.id)" size="mini" type="danger">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+
+                    <!-- 分页组件 -->
+                    <el-pagination
+                            @current-change="handleCurrentChange"
+                            :current-page="currentPage"
+                            :page-size="pageSize"
+                            :total="tableData.length"
+                            layout="total, prev, pager, next, jumper">
+                    </el-pagination>
+                </el-main>
+            </el-container>
+        </el-container>
+        <el-footer>
+            慧医数字医疗应用系统 - 版权所有 © 2025
+        </el-footer>
+    </el-container>
+
+    <!-- 添加/编辑医药公司对话框 -->
+    <el-dialog
+            :title="form.id ? '修改医药公司' : '添加医药公司'"
+            :visible.sync="dialogVisible"
+            width="30%">
+        <el-form :model="form" label-width="80px">
+            <el-form-item label="公司名称">
+                <el-input v-model="form.name" placeholder="请输入公司名称"></el-input>
+            </el-form-item>
+            <el-form-item label="联系方式">
+                <el-input v-model="form.phone" placeholder="请输入联系方式"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="saveCompany">保存</el-button>
+        </div>
+    </el-dialog>
+</div>
+
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                // 静态示例数据
+                tableData: [],
+                searchKeyword: '',
+                dialogVisible: false,
+                form: {
+                    id: null,
+                    name: '',
+                    phone: '',
+                    address: ''
+                },
+                currentPage: 1,
+                pageSize: 10,
+                currentModule: 'company',
+                currentUser: null, // 存储当前登录用户信息
+                // 可根据实际路由配置模块路径
+                moduleRoutes: {
+                    home: '/home',
+                    doctor: '/doctor',
+                    drugcompany: '/drugcompany',
+                    medical_policy: '/medical_policy',
+                    china: '/china',
+                    medicine: '/medicine',
+                    material: '/material',
+                    companypolicy: '/companypolicy',
+                    sale_place: '/sale_place',
+                }
+            };
+        },
+        mounted() {
+            // 检查是否有登录用户
+            this.checkLoginStatus();
+        },
+        methods: {
+            formatDateTime(isoString) {
+                if (!isoString) return '';
+                try {
+                    const date = new Date(isoString);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                } catch (e) {
+                    return '格式错误';
+                }
+            },
+
+            // 显示搜索提示
+            searchCompany() {
+                if (!this.searchKeyword) {
+                    this.getDrugcompanys();
+                    return;
+                }
+
+                axios.get(`drugcompanys/searchByName?name=${this.searchKeyword}`)
+                    .then(response => {
+                        this.tableData = response.data;
+                    })
+                    .catch(error => {
+                        console.error('搜索失败:', error);
+                        this.$message.error('搜索失败');
+                    });
+            },
+            // 获取所有公司
+            getDrugcompanys() {
+                axios.get('drugcompanys/queryDrugcompanys')
+                    .then(response => {
+                        this.tableData = response.data;
+                    })
+                    .catch(error => {
+                        console.error('获取医药公司信息失败:', error);
+                        this.$message.error('获取医药公司信息失败');
+                    });
+            },
+
+
+            handleCurrentChange(page) {
+                this.currentPage = page;
+                this.$message({
+                    message: `切换到第 ${page} 页`,
+                    type: 'info'
+                });
+            },
+
+            // 打开添加对话框
+            openAddDialog() {
+                // 重置表单
+                this.form = {
+                    id: null,
+                    name: '',
+                    phone: '',
+                    address: ''
+                };
+                this.dialogVisible = true;
+            },
+
+            // 编辑公司
+            editCompany(company) {
+                console.log('编辑公司:', company);
+                // 复制公司数据到表单
+                this.form = {
+                    id: company.id,
+                    name: company.name,
+                    phone: company.phone,
+                    updatetime: company.updatetime,
+                    createtime: company.createtime
+                };
+                this.dialogVisible = true;
+            },
+
+            // 保存公司
+            saveCompany() {
+                // 简单验证
+                if (!this.form.name || !this.form.phone) {
+                    this.$message.error('公司名称和联系方式不能为空');
+                    return;
+                }
+
+                if (this.form.id) {
+                    // 更新操作
+                    axios.post('drugcompanys/update', this.form)
+                        .then(response => {
+                            if (response.data) {
+                                this.$message.success('公司信息已更新');
+                                this.getDrugcompanys();
+                            } else {
+                                this.$message.error('公司信息更新失败');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('更新失败:', error);
+                            this.$message.error('更新失败');
+                        });
+                } else {
+                    // 添加操作
+                    axios.post('drugcompanys/add', this.form)
+                        .then(response => {
+                            if (response.data) {
+                                this.$message.success('新公司已添加');
+                                this.getDrugcompanys();
+                            } else {
+                                this.$message.error('新公司添加失败');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('添加失败:', error);
+                            this.$message.error('添加失败');
+                        });
+                }
+
+                this.dialogVisible = false;
+            },
+
+            // 删除公司
+            deleteCompany(companyId) {
+                this.$confirm('确定要删除该医药公司信息吗?', '警告', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.get(`drugcompanys/delete/${companyId}`)
+                        .then(response => {
+                            if (response.data) {
+                                this.$message.success('公司已删除');
+                                this.getDrugcompanys();
+                            } else {
+                                this.$message.error('公司删除失败');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('删除失败:', error);
+                            this.$message.error('删除失败');
+                        });
+                }).catch(() => {
+                    this.$message.info('取消删除');
+                });
+            },
+            // 获取列表
+            getDrugcompanys() {
+                axios.get('drugcompanys/queryDrugcompanys')
+                    .then(response => {
+                        this.tableData = response.data;
+                        console.log('医药公司信息加载成功:', this.tableData);
+                    })
+                    .catch(error => {
+                        console.error('获取医药公司信息失败:', error);
+                        this.$message.error('获取医药公司信息失败，请稍后重试');
+                    });
+            },
+            // 导航方法 - 改进为页面跳转
+            navigateTo(module) {
+                this.currentModule = module;
+
+                // 定义模块与页面的映射关系
+                const modulePages = {
+                    'home': 'index1.html',
+                    'doctor': 'doctor1.html',
+                    'medicine': 'drug1.html',
+                    'drugcompany': 'drugcompany1.html',
+                    'china': 'china1.html',
+                    'medical_policy': 'medical_policy1.html',
+                    'companypolicy': 'companypolicy1.html',
+                    'material': 'material1.html',
+                    'sale_place': 'sale_place1.html'
+                };
+
+                // 获取对应的页面URL
+                const pageUrl = modulePages[module] || 'index.html';
+
+                // 执行页面跳转
+                window.location.href = pageUrl;
+
+                // 显示跳转提示
+                this.$message.info(`跳转到 ${module} 模块`);
+            },
+            // 检查登录状态
+            checkLoginStatus() {
+                const user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+                if (user) {
+                    this.currentUser = user;
+                }
+            },
+            // 跳转到登录页面
+            navigateToLogin() {
+                window.location.href = 'account.html';
+            },
+            // 处理用户操作
+            handleUserCommand(command) {
+                if (command === 'info') {
+                    window.location.href = 'information.html';
+                } else if (command === 'logout') {
+                    this.logout();
+                }
+            },
+            // 退出登录
+            logout() {
+                sessionStorage.removeItem('currentUser');
+                this.currentUser = null;
+                this.$message.success('已退出登录');
+                // 刷新页面
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            },
+            // 刷新数据
+            refreshData() {
+                this.getDrugcompanys();
+            }
+        },
+        created() {
+            this.getDrugcompanys();
+        }
+    });
+</script>
+</body>
+
+</html>

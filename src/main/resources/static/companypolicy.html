@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公司政策管理系统</title>
+    <!-- 引入Vue和Element UI -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1a6fbf;
+            --secondary-color: #2a9d8f;
+            --accent-color: #e76f51;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .el-header {
+            background: linear-gradient(135deg, var(--primary-color), #0d5494);
+            color: white;
+            line-height: 60px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        .header-title {
+            flex-grow: 1;
+            text-align: center;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        .login-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .login-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .user-dropdown {
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .user-dropdown:hover {
+            color: #e6e6e6;
+        }
+        .el-footer {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            line-height: 60px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .el-aside {
+            width: 200px;
+            background: linear-gradient(to bottom, #2c3e50, #34495e);
+            color: white;
+            padding: 10px 0;
+            transition: all 0.3s ease;
+        }
+        .el-container {
+            height: 86vh;
+        }
+        .nav-button {
+            width: 90%;
+            margin: 8px auto;
+            text-align: left;
+            border: none;
+            border-radius: 6px;
+            display: block;
+            transition: all 0.3s;
+            color: #ecf0f1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+        .nav-button i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+        .nav-button.type-primary {
+            background: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(26, 111, 191, 0.4);
+        }
+        .el-main {
+            padding: 20px;
+            overflow: auto;
+            background-color: #f5f7fa;
+        }
+        @media (max-width: 768px) {
+            .el-aside {
+                width: 60px;
+            }
+            .nav-button span {
+                display: none;
+            }
+            .nav-button i {
+                margin-right: 0;
+                font-size: 20px;
+            }
+            .el-header {
+                padding: 0 10px;
+                font-size: 16px;
+            }
+            .user-name {
+                font-size: 14px;
+            }
+            /* 响应式调整：小屏幕下搜索框和按钮换行 */
+            .search-add-row .el-col {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <el-container>
+        <el-header>
+            <div class="header-title">慧医数字医疗应用系统 - 公司政策查询</div>
+            <div class="user-info">
+                <button v-if="!currentUser" class="login-btn" @click="navigateToLogin">
+                    <i class="el-icon-user"></i> 登录
+                </button>
+                <el-dropdown v-else @command="handleUserCommand">
+                        <span class="user-dropdown">
+                            <i class="el-icon-user"></i>
+                            <span class="user-name">{{ currentUser.realname || currentUser.username }}</span>
+                            <i class="el-icon-arrow-down el-icon--right"></i>
+                        </span>
+                    <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item command="info">个人信息</el-dropdown-item>
+                        <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                    </el-dropdown-menu>
+                </el-dropdown>
+            </div>
+        </el-header>
+        <el-container>
+            <el-aside>
+                <div class="nav-buttons">
+                    <el-button class="nav-button" type="info" @click="navigateTo('home')">
+                        <i class="el-icon-message"></i> 首页
+                    </el-button>
+                    <el-button class="nav-button" type="info" @click="navigateTo('doctor')">
+                        <i class="el-icon-user"></i> 医生信息查询
+                    </el-button>
+                    <el-button class="nav-button" type="info" @click="navigateTo('medicine')">
+                        <i class="el-icon-sell"></i> 药品信息查询
+                    </el-button>
+                    <el-button class="nav-button" type="info" @click="navigateTo('drugcompany')">
+                        <i class="el-icon-s-claim"></i> 医药公司查询
+                    </el-button>
+                    <el-button class="nav-button" type="info" @click="navigateTo('china')">
+                        <i class="el-icon-location"></i> 城市信息查询
+                    </el-button>
+                    <el-button class="nav-button" type="info" @click="navigateTo('medical_policy')">
+                        <i class="el-icon-document"></i> 医药政策查询
+                    </el-button>
+                    <el-button class="nav-button type-primary" type="primary" @click="navigateTo('companypolicy')">
+                        <i class="el-icon-location"></i> 公司政策查询
+                    </el-button>
+                    <el-button class="nav-button" type="info" @click="navigateTo('material')">
+                        <i class="el-icon-folder"></i> 必备材料查询
+                    </el-button>
+                    <el-button class="nav-button" type="info" @click="navigateTo('sale_place')">
+                        <i class="el-icon-location"></i> 销售地点查询
+                    </el-button>
+                </div>
+            </el-aside>
+            <el-container>
+                <el-main>
+                    <h1>公司政策管理系统</h1>
+                    <!-- 搜索框 -->
+                    <div class="search-add-row">
+                        <el-row :gutter="10" class="mb-3">
+                            <el-col :sm="14" :md="4">
+                                <el-input v-model="searchKeyword" placeholder="输入关键词搜索" style="width: 100%;"></el-input>
+                            </el-col>
+                            <el-col :sm="14" :md="4">
+                                <el-input v-model="searchId" placeholder="输入 ID 搜索" style="width: 100%;"></el-input>
+                            </el-col>
+                            <el-col :sm="14" :md="6" class="text-right">
+                                <el-button @click="searchPolicies" style="margin-right: 10px;">搜索</el-button>
+                            </el-col>
+                        </el-row>
+                    </div>
+
+                    <el-table :data="filteredPolicies" stripe>
+                        <el-table-column prop="id" label="ID"></el-table-column>
+                        <el-table-column prop="title" label="标题"></el-table-column>
+                        <el-table-column prop="message" label="内容"></el-table-column>
+                        <el-table-column prop="companyId" label="公司ID"></el-table-column>
+                        <el-table-column prop="createTime" label="创建时间">
+                            <template slot-scope="scope">
+                                {{ formatDate(scope.row.createTime) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="updateTime" label="更新时间">
+                            <template slot-scope="scope">
+                                {{ formatDate(scope.row.updateTime) }}
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </el-main>
+            </el-container>
+        </el-container>
+        <el-footer>
+            慧医数字医疗应用系统 - 版权所有 © 2025
+        </el-footer>
+    </el-container>
+</div>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                currentModule: 'companypolicy',
+                currentModuleTitle: '公司政策管理',
+                currentUser: null, // 存储当前登录用户信息
+
+                // 可根据实际路由配置模块路径
+                moduleRoutes: {
+                    home: '/home',
+                    doctor: '/doctor',
+                    drugcompany: '/drugcompany',
+                    medical_policy: '/medical_policy',
+                    china: '/china',
+                    medicine: '/medicine',
+                    material: '/material',
+                    companypolicy: '/companypolicy',
+                    sale_place: '/sale_place'
+                },
+                policies: [],
+                filteredPolicies: [],
+                searchKeyword: '',
+                searchId: ''
+            };
+        },
+        mounted() {
+            // 检查是否有登录用户
+            this.checkLoginStatus();
+            this.fetchPolicies();
+        },
+        methods: {
+            navigateTo(module) {
+                this.currentModule = module;
+                // 动态设置标题
+                this.currentModuleTitle = this.getModuleTitle(module);
+                // 实际项目中请替换为前端路由或后端接口跳转
+                this.$message.info(`正在跳转至 ${this.currentModuleTitle}...`);
+                // 示例：跳转到对应HTML页面（需提前创建页面文件）
+                switch (module) {
+                    case 'home': window.location.href = 'index.html'; break;
+                    case 'doctor': window.location.href = 'doctor.html'; break;
+                    case 'drugcompany': window.location.href = 'drugcompany.html'; break;
+                    case 'medical_policy': window.location.href = 'medical_policy.html'; break;
+                    case 'china': window.location.href = 'china.html'; break;
+                    case 'medicine': window.location.href = 'drug.html'; break; // 沿用原药品页面
+                    case 'material': window.location.href = 'material.html'; break;
+                    case 'companypolicy': window.location.href = 'companypolicy.html'; break;
+                    case 'sale_place': window.location.href = 'sale_place.html'; break;
+                }
+            },
+            getModuleTitle(module) {
+                const titleMap = {
+                    home: '首页',
+                    doctor: '医生信息管理',
+                    drugcompany: '医药公司管理',
+                    medical_policy: '医药政策管理',
+                    china: '城市信息管理',
+                    medicine: '药品信息管理',
+                    material: '必备材料管理',
+                    companypolicy: '公司政策管理',
+                    sale_place: '销售地点管理'
+                };
+                return titleMap[module] || '未知模块';
+            },
+            // 检查登录状态
+            checkLoginStatus() {
+                const user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+                if (user) {
+                    this.currentUser = user;
+                }
+            },
+            // 跳转到登录页面
+            navigateToLogin() {
+                window.location.href = 'account.html';
+            },
+            // 处理用户操作
+            handleUserCommand(command) {
+                if (command === 'info') {
+                    window.location.href = 'information.html';
+                } else if (command === 'logout') {
+                    this.logout();
+                }
+            },
+            // 退出登录
+            logout() {
+                sessionStorage.removeItem('currentUser');
+                this.currentUser = null;
+                this.$message.success('已退出登录');
+                // 刷新页面
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            },
+            fetchPolicies() {
+                axios.get('companyPolicies/getAllPolicies')
+                    .then(response => {
+                        this.policies = response.data;
+                        this.filteredPolicies = response.data;
+                    })
+                    .catch(error => {
+                        console.error('获取政策列表失败', error);
+                    });
+            },
+            formatDate(date) {
+                if (date) {
+                    return new Date(date).toLocaleString();
+                }
+                return '';
+            },
+            searchPolicies() {
+                let params = {};
+                if (this.searchKeyword) {
+                    params.keyword = this.searchKeyword;
+                }
+                if (this.searchId) {
+                    params.id = this.searchId.toString(); // 确保以字符串形式传递
+                }
+
+                if (Object.keys(params).length === 0) {
+                    this.fetchPolicies();
+                } else {
+                    axios.get('companyPolicies/searchPolicies', { params })
+                        .then(response => {
+                            this.filteredPolicies = response.data;
+                        })
+                        .catch(error => {
+                            console.error('搜索政策失败', error);
+                        });
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>

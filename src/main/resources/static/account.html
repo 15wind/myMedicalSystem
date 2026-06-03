@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>账户登录</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+        :root {
+            --primary-color: #1a6fbf;
+            --secondary-color: #2a9d8f;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --bg-gradient: linear-gradient(135deg, #e6f7ff 0%, #f0f7ff 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: #333;
+        }
+
+        .el-header {
+            background: linear-gradient(135deg, var(--primary-color), #0d5494);
+            color: white;
+            line-height: 60px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 100;
+            text-align: center;
+        }
+
+        .el-main {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .el-footer {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            line-height: 60px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .login-form {
+            width: 380px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            padding: 40px 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-form::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .form-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .el-form-item {
+            margin-bottom: 20px;
+        }
+
+        .el-form-item__label {
+            color: #555;
+            font-weight: 500;
+        }
+
+        .el-input__inner {
+            border-radius: 6px;
+            padding: 10px 15px;
+            height: 42px;
+            border-color: #ddd;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .el-input__inner:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(26, 111, 191, 0.1);
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .el-button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .el-button--primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .el-button--primary:hover {
+            background-color: #0d5494;
+            border-color: #0d5494;
+        }
+
+        .el-button--default {
+            background-color: #f8f9fa;
+            border-color: #ddd;
+            color: #555;
+        }
+
+        .el-button--default:hover {
+            background-color: #e9ecef;
+            border-color: #ddd;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+<div id="login-container">
+    <el-container>
+        <el-header>账户登录</el-header>
+        <el-main>
+            <el-form class="login-form" :model="form" ref="loginForm" label-width="80px">
+                <h3 class="form-title">欢迎登录</h3>
+                <el-form-item label="用户名">
+                    <el-input v-model="form.username"></el-input>
+                </el-form-item>
+                <el-form-item label="密码">
+                    <el-input type="password" v-model="form.password"></el-input>
+                </el-form-item>
+                <div class="form-actions">
+                    <el-button type="primary" @click="login">登录</el-button>
+                    <el-button @click="goToRegister">注册</el-button>
+                </div>
+            </el-form>
+        </el-main>
+        <el-footer>慧医数字医疗应用系统 - 版权所有 © 2025</el-footer>
+    </el-container>
+</div>
+
+<!-- 使用CDN引用Vue和axios -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios@0.21.1/dist/axios.min.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+
+<script>
+    new Vue({
+        el: '#login-container',
+        data() {
+            return {
+                form: {
+                    username: '',
+                    password: ''
+                },
+                loading: false
+            };
+        },
+        methods: {
+            login() {
+                // 显示加载状态
+                this.loading = true;
+
+                // 检查输入是否为空
+                if (!this.form.username || !this.form.password) {
+                    this.$message.error('用户名和密码不能为空');
+                    this.loading = false;
+                    return;
+                }
+
+                // 发送登录请求
+                axios.get('/accounts/queryAccounts')
+                    .then(response => {
+                        // 检查接口返回格式
+                        if (!Array.isArray(response.data)) {
+                            throw new Error('接口返回格式错误');
+                        }
+
+                        // 查找匹配的账户（注意数据库字段是uname而不是username）
+                        const user = response.data.find(account =>
+                            account.username === this.form.username &&
+                            account.pwd === this.form.password
+                        );
+
+                        if (user) {
+                            // 登录成功
+                            sessionStorage.setItem('currentUser', JSON.stringify(user));
+                            this.$message.success('登录成功，正在跳转...');
+                            setTimeout(() => {
+                                if (user.utype === 'ROLE_1') {
+                                    window.location.href = 'index1.html';
+                                } else {
+                                    window.location.href = 'index.html';
+                                }
+                            }, 1000);
+                        } else {
+                            // 登录失败
+                            this.$message.error('用户名或密码错误');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('登录请求失败:', error);
+                        this.$message.error('登录请求失败: ' + error.message);
+                    })
+                    .finally(() => {
+                        // 隐藏加载状态
+                        this.loading = false;
+                    });
+            },
+
+            goToRegister() {
+                window.location.href = 'register.html';
+            }
+        }
+    });
+</script>
+</body>
+</html>
